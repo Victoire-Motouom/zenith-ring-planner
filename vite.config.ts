@@ -23,16 +23,13 @@ export default defineConfig(({ mode }) => {
       react(),
       tsconfigPaths(),
       VitePWA({
-        srcDir: 'public',
-        filename: 'sw.js',
-        strategies: 'injectManifest',
         registerType: 'autoUpdate',
         devOptions: {
           enabled: true,
           type: 'module',
           navigateFallback: base
         },
-        includeAssets: ['favicon.ico', 'logo.png', 'manifest.json'],
+        includeAssets: ['favicon.ico', 'logo.png'],
         manifest: {
           name: 'Zenith Planner - Master Your Path',
           short_name: 'Zenith Planner',
@@ -57,13 +54,42 @@ export default defineConfig(({ mode }) => {
             }
           ]
         },
-        injectRegister: 'auto',
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
           navigateFallback: `${base}index.html`,
           cleanupOutdatedCaches: true,
           clientsClaim: true,
-          skipWaiting: true
+          skipWaiting: true,
+          runtimeCaching: [
+            {
+              urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'google-fonts-cache',
+                expiration: {
+                  maxEntries: 10,
+                  maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+                },
+                cacheableResponse: {
+                  statuses: [0, 200]
+                }
+              }
+            },
+            {
+              urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'gstatic-fonts-cache',
+                expiration: {
+                  maxEntries: 10,
+                  maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+                },
+                cacheableResponse: {
+                  statuses: [0, 200]
+                }
+              }
+            }
+          ]
         }
       })
     ],
