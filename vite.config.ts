@@ -23,15 +23,16 @@ export default defineConfig(({ mode }) => {
       react(),
       tsconfigPaths(),
       VitePWA({
+        srcDir: 'public',
+        filename: 'sw.js',
+        strategies: 'injectManifest',
         registerType: 'autoUpdate',
         devOptions: {
-          enabled: true
+          enabled: true,
+          type: 'module',
+          navigateFallback: base
         },
-        includeAssets: ['logo.png', 'favicon.ico'],
-        workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-          navigateFallback: `${base}index.html`,
-        },
+        includeAssets: ['favicon.ico', 'logo.png', 'manifest.json'],
         manifest: {
           name: 'Zenith Planner - Master Your Path',
           short_name: 'Zenith Planner',
@@ -43,17 +44,26 @@ export default defineConfig(({ mode }) => {
           theme_color: '#1e3a8a',
           icons: [
             {
-              src: 'logo.png',
+              src: `${base}logo.png`,
               sizes: '192x192',
-              type: 'image/png'
+              type: 'image/png',
+              purpose: 'any maskable'
             },
             {
-              src: 'logo.png',
+              src: `${base}logo.png`,
               sizes: '512x512',
               type: 'image/png',
               purpose: 'any maskable'
             }
           ]
+        },
+        injectRegister: 'auto',
+        workbox: {
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
+          navigateFallback: `${base}index.html`,
+          cleanupOutdatedCaches: true,
+          clientsClaim: true,
+          skipWaiting: true
         }
       })
     ],

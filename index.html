@@ -64,9 +64,10 @@
       // Register service worker for PWA functionality
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/zenith-ring-planner/sw.js')
+          const base = '/zenith-ring-planner/';
+          navigator.serviceWorker.register(`${base}sw.js`, { scope: base })
             .then(registration => {
-              console.log('ServiceWorker registration successful');
+              console.log('ServiceWorker registration successful with scope: ', registration.scope);
             })
             .catch(err => {
               console.log('ServiceWorker registration failed: ', err);
