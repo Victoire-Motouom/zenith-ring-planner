@@ -63,19 +63,6 @@
     <div id="root">
       <div class="loading">Loading...</div>
     </div>
-    <script>
-      // Register service worker for PWA functionality
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/zenith-ring-planner/sw.js')
-            .then(registration => {
-              console.log('ServiceWorker registration successful');
-            })
-            .catch(err => {
-              console.log('ServiceWorker registration failed: ', err);
-            });
-        });
-      }
-    </script>
+    <!-- Service Worker will be auto-registered by Vite PWA plugin -->
   </body>
 </html>

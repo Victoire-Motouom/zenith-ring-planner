@@ -10,14 +10,16 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "logo.png",
+      "src": "/zenith-ring-planner/logo.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "logo.png",
+      "src": "/zenith-ring-planner/logo.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ],
   "categories": ["productivity", "finance", "lifestyle"],
