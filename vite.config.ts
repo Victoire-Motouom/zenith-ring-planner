@@ -9,6 +9,9 @@ export default defineConfig(({ mode }) => {
   const isProduction = mode === 'production';
   const base = isProduction ? '/zenith-ring-planner/' : '/';
   
+  // Set the base URL for the app
+  process.env.VITE_BASE_URL = base;
+  
   return {
     base,
     server: {
