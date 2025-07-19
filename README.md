@@ -1,24 +1,50 @@
 # 🌄 Zenith Ring Planner
 
-[![Deploy to GitHub Pages](https://github.com/yourusername/zenith-ring-planner/actions/workflows/deploy.yml/badge.svg)](https://github.com/Motouom/zenith-ring-planner/actions/workflows/deploy.yml)
+[![Deploy to GitHub Pages](https://github.com/Motouom/zenith-ring-planner/actions/workflows/deploy.yml/badge.svg)](https://github.com/Motouom/zenith-ring-planner/actions/workflows/deploy.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
 
-A comprehensive personal planning and productivity application inspired by Miyamoto Musashi's Five Rings philosophy. The app helps users manage their finances, goals, tasks, and daily reflections in one place.
+**Zenith Ring Planner** is a modern, privacy-focused personal productivity suite that combines financial planning, goal tracking, and personal development tools. Built with a mobile-first approach, it offers a seamless experience across all devices while maintaining data privacy and offline functionality.
 
-A comprehensive personal planning and productivity application inspired by Miyamoto Musashi's Five Rings philosophy. The app helps users manage their finances, goals, tasks, and daily reflections in one place.
+🔗 **Live Demo**: [https://victoire-motouom.github.io/zenith-ring-planner/](https://victoire-motouom.github.io/zenith-ring-planner/)
 
-## 🚀 Deployment
+## 🚀 Quick Start
 
 ### Prerequisites
 - Node.js 18+ and npm
 - Git
-- GitHub account
+- GitHub account (for deployment)
 
-### Deploy to GitHub Pages
+### Local Development
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/Motouom/zenith-ring-planner.git
+   cd zenith-ring-planner
+   ```
+
+2. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+
+3. **Start the development server**:
+   ```bash
+   npm run dev
+   ```
+   The app will be available at `http://localhost:5173`
+
+4. **Run tests**:
+   ```bash
+   npm test
+   ```
+
+## 🚀 Deployment
+
+### GitHub Pages
 
 1. **Fork** this repository to your GitHub account
 2. **Clone** your forked repository:
    ```bash
-   git clone https://github.com/Motouom/zenith-ring-planner.git
+   git clone https://github.com/yourusername/zenith-ring-planner.git
    cd zenith-ring-planner
    ```
 3. **Install dependencies**:
@@ -40,65 +66,60 @@ A comprehensive personal planning and productivity application inspired by Miyam
 
 Your app will be available at: `https://yourusername.github.io/zenith-ring-planner`
 
-## 🌟 Features
+### Other Deployment Options
 
-### ✅ Implemented
+#### Vercel
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FMotouom%2Fzenith-ring-planner)
 
-#### 1. Core Functionality
-- **Budget Management**: Track income and expenses with transaction history
-- **Goal Setting**: Set and track financial and personal goals
-- **Task Management**: Organize daily tasks with priority levels
-- **Reflection Journal**: Daily journaling for self-improvement
+## 🛠️ Tech Stack
 
-#### 2. User Experience
-- **Responsive Design**: Fully responsive layout that works on mobile, tablet, and desktop
-- **Dark/Light Mode**: Toggle between themes with system preference detection
-- **Local-First**: All data stored locally in the browser using IndexedDB
-- **Progressive Web App**: Installable on devices for offline use
+### Core Technologies
+- [React 18](https://reactjs.org/) - Frontend library
+- [TypeScript](https://www.typescriptlang.org/) - Type-safe JavaScript
+- [Vite](https://vitejs.dev/) - Next Generation Frontend Tooling
+- [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS framework
+- [Shadcn UI](https://ui.shadcn.com/) - Beautifully designed components
+- [React Router](https://reactrouter.com/) - Client-side routing
+- [React Query](https://tanstack.com/query/latest) - Server state management
+- [Dexie.js](https://dexie.org/) - IndexedDB wrapper for offline storage
 
-#### 3. Technical Implementation
-- Built with React and TypeScript
-- State management with React Context API
-- Responsive UI using Tailwind CSS
-- Local data persistence with Dexie.js
-- Modern build setup with Vite
+### Development Tools
+- [ESLint](https://eslint.org/) - JavaScript/TypeScript linting
+- [Prettier](https://prettier.io/) - Code formatting
+- [Husky](https://typicode.github.io/husky/) - Git hooks
+- [Jest](https://jestjs.io/) - Testing framework
+- [Testing Library](https://testing-library.com/) - React component testing
+- [GitHub Actions](https://github.com/features/actions) - CI/CD pipeline
 
-### 🚧 Pending Implementation
+## ✨ Key Features
 
-#### 1. Core Features
-- [ ] Task categories and tags
-- [ ] Goal progress visualization
-- [ ] Data export/import functionality
-- [ ] Recurring transactions
+### 🏆 Core Functionality
+- **Budget Management**: Track income and expenses with detailed transaction history and categorization
+- **Goal Setting**: Set and track financial and personal goals with progress tracking
+- **Task Management**: Organize daily tasks with priority levels and due dates
+- **Habit Tracking**: Build and maintain positive habits with streak tracking
+- **Reflection Journal**: Daily and weekly reflection prompts for personal growth
+- **Data Visualization**: Beautiful charts and graphs to visualize your progress
 
-#### 2. Enhanced Functionality
-- [ ] Data backup to cloud storage
-- [ ] Multi-device sync
-- [ ] Advanced reporting and analytics
-- [ ] Customizable categories and tags
+### 🌈 User Experience
+- **Mobile-First**: Fully responsive design that works on any device
+- **Dark/Light Mode**: Automatic theme switching based on system preferences
+- **Accessibility**: Built with WCAG 2.1 AA compliance in mind
+- **Offline Support**: Progressive Web App (PWA) functionality for offline use
+- **Privacy-Focused**: Your data stays on your device
 
-## 🛠️ Technical Stack
-
-- **Frontend**: React 18, TypeScript, Vite
-- **Styling**: Tailwind CSS, PostCSS
-- **State Management**: React Context API
-- **Database**: IndexedDB with Dexie.js
-- **Build Tool**: Vite
-- **Linting/Formatting**: ESLint, Prettier
-- **Version Control**: Git
-
-## 🚀 Getting Started
+### ⚙️ Development
 
 ### Prerequisites
-
-- Node.js 16+ and npm/yarn
-- Modern web browser (Chrome, Firefox, Safari, Edge)
+- Node.js 18 or later
+- npm or yarn
+- Git
 
 ### Installation
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/zenith-ring-planner.git
+   git clone https://github.com/Motouom/zenith-ring-planner.git
    cd zenith-ring-planner
    ```
 
@@ -106,7 +127,7 @@ Your app will be available at: `https://yourusername.github.io/zenith-ring-plann
    ```bash
    npm install
    # or
-   yarn install
+   yarn
    ```
 
 3. Start the development server:
@@ -116,29 +137,38 @@ Your app will be available at: `https://yourusername.github.io/zenith-ring-plann
    yarn dev
    ```
 
-4. Open [http://localhost:8080](http://localhost:8080) in your browser.
+4. Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-## 📱 Mobile Responsiveness
+### Running Tests
 
-The application has been optimized for mobile devices with:
-- Touch-friendly UI elements
-- Responsive layouts that adapt to different screen sizes
-- Proper viewport settings for mobile browsers
-- Enhanced tap targets for better touch interaction
+```bash
+npm test
+# or
+yarn test
+```
 
-## 🎨 Theming
+### Building for Production
 
-The app supports both light and dark modes with:
-- System preference detection
-- Manual theme switching
-- Persistent theme selection
-- Smooth transitions between themes
+```bash
+npm run build
+# or
+yarn build
+```
 
-## 📊 Data Management
+## 🚀 Deployment
 
-- All data is stored locally in the browser
+### GitHub Pages
+1. Update the `homepage` field in `package.json`
+2. Run: `npm run deploy`
+
+### Self-Hosting
+1. Run `npm run build`
+2. Deploy the `dist` folder to your hosting service
+
+## 🔒 Data Management
+
+- All data is stored locally in your browser
 - No data is sent to external servers
-- Data is encrypted at rest by the browser
 - Backup and restore functionality
 
 ## 🧪 Testing
@@ -173,15 +203,37 @@ The app supports both light and dark modes with:
 
 2. Deploy the `dist` folder to your chosen hosting service.
 
-## 📝 License
+## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+Distributed under the MIT License. See `LICENSE` for more information.
 
 ## 🙏 Acknowledgments
 
 - Inspired by Miyamoto Musashi's "The Book of Five Rings"
-- Built with modern web technologies
-- Special thanks to the open-source community
+- Built with modern web technologies and the power of the open-source community
+- Special thanks to all contributors who have helped improve this project
+
+## 🤝 Contributing
+
+Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📊 Project Status
+
+This project is actively maintained. We're currently working on:
+- [ ] Enhanced data export/import functionality
+- [ ] Additional visualization options
+- [ ] Mobile app version
+- [ ] Browser extension
+
+## 🌟 Show Your Support
+
+If you find this project helpful, please consider giving it a ⭐️ on [GitHub](https://github.com/Motouom/zenith-ring-planner).
 
 ## 📬 Contact
 
