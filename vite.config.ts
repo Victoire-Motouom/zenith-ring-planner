@@ -28,14 +28,49 @@ export default defineConfig(({ mode }) => ({
         navigateFallback: '/zenith-ring-planner/index.html',
       },
       manifest: {
+        name: 'Zenith Planner - Master Your Path',
+        short_name: 'Zenith Planner',
+        description: 'A mindful approach to budgeting and daily planning',
         start_url: '/zenith-ring-planner/',
         scope: '/zenith-ring-planner/',
+        display: 'standalone',
+        background_color: '#f8fafc',
+        theme_color: '#1e3a8a',
+        icons: [
+          {
+            src: '/zenith-ring-planner/public/logo.png',
+            sizes: '192x192',
+            type: 'image/png'
+          },
+          {
+            src: '/zenith-ring-planner/public/logo.png',
+            sizes: '512x512',
+            type: 'image/png'
+          }
+        ]
       }
     })
   ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+    },
+  },
+  define: {
+    'process.env': process.env,
+    'import.meta.env.VITE_BASE_URL': JSON.stringify(process.env.VITE_BASE_URL || '/zenith-ring-planner/')
+  },
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ['react', 'react-dom', 'react-router-dom'],
+          vendor: ['date-fns', 'dexie', 'dexie-react-hooks'],
+        },
+      },
     },
   },
 }));
