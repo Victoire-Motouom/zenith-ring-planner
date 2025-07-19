@@ -2,18 +2,45 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no,date=no,address=no,email=no,url=no">
     <meta name="theme-color" content="#1e3a8a" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
     <link rel="manifest" href="manifest.json" />
     <link rel="icon" type="image/png" href="logo.png" />
     <base href="/zenith-ring-planner/" />
     <style>
+      /* Base styles for better mobile input handling */
+      html {
+        -webkit-text-size-adjust: 100%;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+      }
+      
+      /* Prevent zoom on input focus */
+      @media screen and (-webkit-min-device-pixel-ratio: 0) {
+        input,
+        select,
+        textarea {
+          font-size: 16px !important;
+        }
+      }
+      
+      /* Specific input types */
+      input:not([type="checkbox"]):not([type="radio"]),
+      select,
+      textarea {
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        font-size: 16px; /* Prevent iOS zoom */
+      }
+      
       @media (max-width: 640px) {
-        /* Prevent zooming on input focus on mobile */
+        /* Ensure inputs are large enough for touch */
         input[type="text"],
         input[type="number"],
         input[type="date"],
