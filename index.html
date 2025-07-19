@@ -8,6 +8,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1e3a8a" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
+    <link rel="manifest" href="/zenith-ring-planner/manifest.json" />
+    <link rel="icon" type="image/png" href="/zenith-ring-planner/public/logo.png" />
+    <base href="/zenith-ring-planner/" />
     <style>
       @media (max-width: 640px) {
         /* Prevent zooming on input focus on mobile */
@@ -28,24 +31,38 @@
           min-width: 44px;
         }
       }
+      
+      /* Add loading styles */
+      #root {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      
+      .loading {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        width: 100%;
+      }
     </style>
     <title>Zenith Planner - Master Your Path</title>
     <meta name="description" content="A mindful approach to budgeting and daily planning inspired by Miyamoto Musashi's Five Rings" />
     <meta name="author" content="Zenith Planner" />
-    <link rel="manifest" href="/zenith-ring-planner/manifest.json" />
-    <link rel="icon" type="image/x-icon" href="/zenith-ring-planner/favicon.png" />
-    <meta name="theme-color" content="#1e3a8a" />
-
     <meta property="og:title" content="Zenith Planner - Master Your Path" />
     <meta property="og:description" content="A mindful approach to budgeting and daily planning inspired by Miyamoto Musashi's Five Rings" />
     <meta property="og:type" content="website" />
-
-    <script type="module" crossorigin src="/zenith-ring-planner/assets/index-Bwl7mqWd.js"></script>
+    <script type="module" crossorigin src="/zenith-ring-planner/assets/index-BvYtcx4O.js"></script>
+    <link rel="modulepreload" crossorigin href="/zenith-ring-planner/assets/react-DDKPen9N.js">
+    <link rel="modulepreload" crossorigin href="/zenith-ring-planner/assets/vendor-DL6J-QeD.js">
     <link rel="stylesheet" crossorigin href="/zenith-ring-planner/assets/index-BYunC04E.css">
   <link rel="manifest" href="/zenith-ring-planner/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/zenith-ring-planner/registerSW.js"></script></head>
 
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="loading">Loading...</div>
+    </div>
     <script>
       // Register service worker for PWA functionality
       if ('serviceWorker' in navigator) {
