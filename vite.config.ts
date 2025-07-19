@@ -5,8 +5,8 @@ import tsconfigPaths from "vite-tsconfig-paths";
 import { VitePWA } from 'vite-plugin-pwa';
 
 // https://vitejs.dev/config/
-export default defineConfig({
-  base: process.env.NODE_ENV === 'production' ? '/zenith-ring-planner/' : '/',
+export default defineConfig(({ mode }) => ({
+  base: mode === 'production' ? '/zenith-ring-planner/' : '/',
   server: {
     host: "::",
     port: 8080,
@@ -25,9 +25,12 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-        navigateFallback: '/offline.html',
+        navigateFallback: '/zenith-ring-planner/index.html',
       },
-      // The manifest will be automatically picked up from public/manifest.json
+      manifest: {
+        start_url: '/zenith-ring-planner/',
+        scope: '/zenith-ring-planner/',
+      }
     })
   ],
   resolve: {
@@ -35,4 +38,4 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-});
+}));

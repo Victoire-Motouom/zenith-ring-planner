@@ -27,7 +27,9 @@ jobs:
         run: npm ci
 
       - name: Build
-        run: npm run build
+        run: |
+          echo 'VITE_BASE_URL=/zenith-ring-planner/' > .env.production
+          npm run build
 
       - name: Deploy to gh-pages
         env:
