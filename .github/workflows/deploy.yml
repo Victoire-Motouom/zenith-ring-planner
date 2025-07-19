@@ -24,13 +24,25 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          npm ci
+          npm install -D @vitejs/plugin-react-swc
+
+      - name: Remove vite.config.js if it exists
+        run: |
+          if [ -f "vite.config.js" ]; then
+            rm vite.config.js
+          fi
 
       - name: Build
         env:
           VITE_BASE_URL: /zenith-ring-planner/
         run: |
           npm run build
+
+      - name: Verify build output
+        run: |
+          ls -la dist/
 
       - name: Deploy to gh-pages
         env:
