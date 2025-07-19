@@ -24,8 +24,20 @@ const componentNameMapping: { [key: string]: string } = {
 
 const Index = () => {
   const [activeSection, setActiveSection] = useState('budget');
+  const [isMobile, setIsMobile] = useState(false);
 
+  // Check if the device is mobile on component mount and on window resize
   useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    // Initial check
+    checkIfMobile();
+    
+    // Add event listener for window resize
+    window.addEventListener('resize', checkIfMobile);
+    
     // Process recurring transactions and check for goal reminders on load
     processRecurringTransactions();
     checkGoalReminders();
@@ -33,9 +45,12 @@ const Index = () => {
     // Set up an interval to check every minute
     const intervalId = setInterval(checkGoalReminders, 60000);
 
-    // Clean up the interval when the component unmounts
-    return () => clearInterval(intervalId);
-  }, []); // Empty dependency array ensures this runs only once on mount
+    // Clean up the interval and event listener when the component unmounts
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener('resize', checkIfMobile);
+    };
+  }, []);
 
   const renderSection = () => {
     if (!activeSection) return null;
@@ -59,19 +74,20 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-subtle">
-      {/* Main Content */}
-      <div className="container mx-auto px-4 py-8 pb-32">
-        <Suspense fallback={<div className="text-center p-12">Loading...</div>}>
+    <div className="min-h-screen bg-background text-foreground pb-24 md:pb-0">
+      <Suspense fallback={
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-pulse text-center">
+            <div className="text-2xl font-bold mb-2">Loading...</div>
+            <div className="text-sm text-muted-foreground">Preparing your experience</div>
+          </div>
+        </div>
+      }>
+        <main className={`container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 transition-all duration-300 ${isMobile ? 'max-w-full' : ''}`}>
           {renderSection()}
-        </Suspense>
-      </div>
-
-      {/* Navigation */}
-      <Navigation 
-        activeSection={activeSection} 
-        onSectionChange={setActiveSection} 
-      />
+        </main>
+      </Suspense>
+      <Navigation activeSection={activeSection} onSectionChange={setActiveSection} isMobile={isMobile} />
     </div>
   );
 };

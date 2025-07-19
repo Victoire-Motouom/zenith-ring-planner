@@ -2,6 +2,93 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  :root {
+    /* Fluid typography - scales between minimum and maximum viewport widths */
+    --fluid-text-min: 1rem; /* 16px at minimum viewport width */
+    --fluid-text-max: 1.125rem; /* 18px at maximum viewport width */
+    --fluid-text-scale: 1.125; /* Scale factor for fluid typography */
+  }
+  
+  /* Base font size for mobile-first approach */
+  html {
+    @apply text-[16px] md:text-[17px] lg:text-[18px];
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Smooth scrolling for all anchor links */
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  /* Better text rendering */
+  body {
+    @apply antialiased text-foreground bg-background;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* Responsive container */
+  .container {
+    @apply w-full px-4 mx-auto;
+    max-width: 100%;
+  }
+  
+  @media (min-width: 640px) {
+    .container {
+      @apply px-6;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .container {
+      @apply px-8;
+    }
+  }
+  
+  /* Better touch targets for mobile */
+  @media (pointer: coarse) {
+    a, button, input, [role="button"], [role="tab"] {
+      min-height: 44px;
+      min-width: 44px;
+    }
+  }
+  
+  /* Prevent text overflow */
+  p, h1, h2, h3, h4, h5, h6 {
+    overflow-wrap: break-word;
+  }
+  
+  /* Better form elements */
+  input, button, textarea, select {
+    font: inherit;
+  }
+  
+  /* Remove default button styles */
+  button {
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  }
+  
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    @apply w-2 h-2;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-background;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/20 rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/30;
+  }
+}
+
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
 */
