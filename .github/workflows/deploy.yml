@@ -36,11 +36,11 @@ jobs:
         env:
           VITE_BASE_URL: /zenith-ring-planner/
         run: |
-          # Create a copy of 404.html for SPA routing
-          cp public/index.html public/404.html
-          
-          # Build the app
+          # Build the app first
           npm run build
+          
+          # Create a copy of index.html as 404.html for SPA routing
+          cp dist/index.html dist/404.html
           
           # Create a .nojekyll file to prevent Jekyll processing
           touch dist/.nojekyll
