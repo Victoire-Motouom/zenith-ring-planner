@@ -2,31 +2,26 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main, master]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
-  deployments: write
+
+concurrency:
+  group: 'pages'
+  cancel-in-progress: true
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    
-    # Add deployment configuration
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -41,26 +36,30 @@ jobs:
         env:
           VITE_BASE_URL: /zenith-ring-planner/
         run: |
-          # Create a copy of 404.html as index.html for GitHub Pages SPA support
-          cp public/404.html public/404.html.bak
+          # Create a copy of 404.html for SPA routing
           cp public/index.html public/404.html
           
           # Build the app
           npm run build
           
-          # Restore the original files
-          mv public/404.html.bak public/404.html
+          # Create a .nojekyll file to prevent Jekyll processing
+          touch dist/.nojekyll
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
-        with:
-          static_site_generator: "vite"
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: 'dist'
 
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
