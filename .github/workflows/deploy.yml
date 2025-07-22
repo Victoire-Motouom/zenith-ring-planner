@@ -28,20 +28,13 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: |
-          npm ci
-          npm install -D @vitejs/plugin-react-swc
+        run: npm ci
 
       - name: Build
-        env:
-          VITE_BASE_URL: /zenith-ring-planner/
         run: |
-          # Build the app first
           npm run build
-          
           # Create a copy of index.html as 404.html for SPA routing
           cp dist/index.html dist/404.html
-          
           # Create a .nojekyll file to prevent Jekyll processing
           touch dist/.nojekyll
 
@@ -63,3 +56,8 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'dist'
