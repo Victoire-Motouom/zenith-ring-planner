@@ -36,13 +36,51 @@ export default defineConfig(({ mode }) => {
         manifest: {
           name: 'Zenith Planner - Master Your Path',
           short_name: 'Zenith Planner',
-          description: 'A mindful approach to budgeting and daily planning',
+          description: 'A mindful approach to budgeting and daily planning inspired by Miyamoto Musashi\'s Five Rings',
           start_url: base,
           scope: base,
           display: 'standalone',
           background_color: '#f8fafc',
           theme_color: '#1e3a8a',
+          orientation: 'portrait-primary',
+          prefer_related_applications: false,
           icons: [
+            {
+              src: `${base}logo.png`,
+              sizes: '72x72',
+              type: 'image/png',
+              purpose: 'any'
+            },
+            {
+              src: `${base}logo.png`,
+              sizes: '96x96',
+              type: 'image/png',
+              purpose: 'any'
+            },
+            {
+              src: `${base}logo.png`,
+              sizes: '128x128',
+              type: 'image/png',
+              purpose: 'any'
+            },
+            {
+              src: `${base}logo.png`,
+              sizes: '144x144',
+              type: 'image/png',
+              purpose: 'any'
+            },
+            {
+              src: `${base}logo.png`,
+              sizes: '152x152',
+              type: 'image/png',
+              purpose: 'any'
+            },
+            {
+              src: `${base}logo.png`,
+              sizes: '180x180',
+              type: 'image/png',
+              purpose: 'any'
+            },
             {
               src: `${base}logo.png`,
               sizes: '192x192',
@@ -51,11 +89,19 @@ export default defineConfig(({ mode }) => {
             },
             {
               src: `${base}logo.png`,
+              sizes: '384x384',
+              type: 'image/png',
+              purpose: 'any'
+            },
+            {
+              src: `${base}logo.png`,
               sizes: '512x512',
               type: 'image/png',
               purpose: 'any maskable'
             }
-          ]
+          ],
+          categories: ['productivity', 'finance', 'lifestyle'],
+          lang: 'en-US'
         },
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],

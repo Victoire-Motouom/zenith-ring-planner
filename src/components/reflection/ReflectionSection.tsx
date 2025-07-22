@@ -124,13 +124,21 @@ export default function ReflectionSection() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-zenith bg-clip-text text-transparent">
-            Daily Reflection
-          </h1>
-          <p className="text-muted-foreground mt-1">Wind Ring - Observing patterns and cultivating wisdom</p>
+      {/* Enhanced Header */}
+      <div className="text-center space-y-4 mb-8">
+        <h1 className="text-3xl font-bold bg-gradient-zenith bg-clip-text text-transparent">
+          Daily Reflection & Wisdom
+        </h1>
+        <p className="text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+          Following Musashi's Five Rings philosophy, cultivate wisdom through daily contemplation. 
+          Each reflection deepens your understanding and guides your path to mastery.
+        </p>
+        <div className="flex justify-center gap-2 flex-wrap">
+          {Object.keys(musashiPrompts).map(ring => (
+            <Badge key={ring} className={`${getRingColor(ring)} capitalize`}>
+              {ring} Ring
+            </Badge>
+          ))}
         </div>
       </div>
 

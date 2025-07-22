@@ -1,98 +1,156 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, TrendingUp, TrendingDown, DollarSign, Target, Activity, ChevronLeft, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { Plus, TrendingUp, TrendingDown, DollarSign, ChevronLeft, ChevronRight, Pencil, Trash2, Target, Activity } from "lucide-react";
+import { useState, useCallback, useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "@/lib/database";
-import { toast } from "@/hooks/use-toast";
+import { db, Transaction, deleteTransaction } from "@/lib/database";
+import { useToast } from "@/components/ui/use-toast";
 import { formatCurrency } from '@/lib/utils';
 import AddTransactionModal from "./AddTransactionModal";
+import EditTransactionModal from "./EditTransactionModal";
 import BudgetSettings from './BudgetSettings';
 import BudgetCategoryProgress from './BudgetCategoryProgress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
+interface MonthlyStats {
+  income: number;
+  expenses: number;
+  balance: number;
+}
+
+type ExpensesByCategory = {
+  [key: string]: number;
+};
+
 export default function BudgetOverview() {
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [isBudgetSettingsOpen, setIsBudgetSettingsOpen] = useState(false);
-  const [currentMonth, setCurrentMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM format
-
-  const transactions = useLiveQuery(() => {
+  const [currentMonth, setCurrentMonth] = useState(new Date().toISOString().slice(0, 7));
+  
+  const { toast } = useToast();
+  
+  // Get transactions for the current month
+  const transactions = useLiveQuery(async () => {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     
-    return db.transactions 
+    return db.transactions
       .where('date')
       .between(startOfMonth, endOfMonth)
       .toArray();
   }, []);
 
-  const monthlyStats = transactions?.reduce((stats, t) => {
-    if (t.type === 'income') {
-      stats.income += t.amount;
-    } else {
-      stats.expenses += t.amount;
+  // Get budgets for the current month
+  const budgets = useLiveQuery(async () => {
+    return db.budgets.toArray();
+  }, []);
+  
+  // Calculate monthly stats
+  const monthlyStats: MonthlyStats = useMemo(() => {
+    const stats: MonthlyStats = { income: 0, expenses: 0, balance: 0 };
+    
+    if (transactions) {
+      transactions.forEach(t => {
+        if (t.type === 'income') {
+          stats.income += t.amount;
+        } else {
+          stats.expenses += t.amount;
+        }
+      });
+      stats.balance = stats.income - stats.expenses;
     }
-    stats.balance = stats.income - stats.expenses;
+    
     return stats;
-  }, { income: 0, expenses: 0, balance: 0 }) || { income: 0, expenses: 0, balance: 0 };
+  }, [transactions]);
+  
+  // Calculate expenses by category
+  const expensesByCategory = useMemo(() => {
+    const result: ExpensesByCategory = {};
+    
+    if (transactions) {
+      transactions.forEach(t => {
+        if (t.type === 'expense') {
+          result[t.category] = (result[t.category] || 0) + t.amount;
+        }
+      });
+    }
+    
+    return result;
+  }, [transactions]);
+  
+  // Handle transaction deletion
+  const handleDeleteTransaction = useCallback(async (id: number | undefined) => {
+    if (!id) return;
+    if (window.confirm('Are you sure you want to delete this transaction?')) {
+      try {
+        await deleteTransaction(id);
+        toast({
+          title: "Success",
+          description: "Transaction deleted successfully",
+        });
+      } catch (error) {
+        console.error('Error deleting transaction:', error);
+        toast({
+          title: "Error",
+          description: "Failed to delete transaction",
+          variant: "destructive",
+        });
+      }
+    }
+  }, [toast]);
 
-  const budgets = useLiveQuery(() => 
-    db.budgets.where('month').equals(currentMonth).toArray(),
-    [currentMonth]
+  const handlePrevMonth = useCallback(() => {
+    const [year, month] = currentMonth.split('-').map(Number);
+    const newDate = new Date(year, month - 2, 1);
+    setCurrentMonth(newDate.toISOString().slice(0, 7));
+  }, [currentMonth]);
+
+  const handleNextMonth = useCallback(() => {
+    const [year, month] = currentMonth.split('-').map(Number);
+    const newDate = new Date(year, month, 1);
+    setCurrentMonth(newDate.toISOString().slice(0, 7));
+  }, [currentMonth]);
+
+  // Calculate budget summary
+  const totalBudget = useMemo(() => 
+    budgets?.reduce((sum, b) => sum + b.amount, 0) ?? 0, 
+    [budgets]
   );
-
-  const totalBudget = budgets?.reduce((sum, b) => sum + b.amount, 0) ?? 0;
+  
   const totalExpenses = monthlyStats.expenses;
   const remainingBudget = totalBudget - totalExpenses;
   const netFlow = monthlyStats.income - monthlyStats.expenses;
 
-  const handleMonthChange = (direction: 'prev' | 'next') => {
-    const currentDate = new Date(`${currentMonth}-02`); // Use day 2 to avoid timezone/month-end issues
-    if (direction === 'prev') {
-      currentDate.setMonth(currentDate.getMonth() - 1);
-    } else {
-      currentDate.setMonth(currentDate.getMonth() + 1);
-    }
-    setCurrentMonth(currentDate.toISOString().slice(0, 7));
-  };
-
-  const expensesByCategory = transactions
-    ?.filter(t => t.type === 'expense')
-    .reduce((acc, t) => {
-      if (!acc[t.category]) {
-        acc[t.category] = 0;
-      }
-      acc[t.category] += t.amount;
-      return acc;
-    }, {} as Record<string, number>);
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-2xl font-bold bg-gradient-zenith bg-clip-text text-transparent">
           Budget Overview
         </h2>
 
         {/* Month Navigator */}
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => handleMonthChange('prev')}>
+          <Button variant="outline" size="icon" onClick={handlePrevMonth}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <span className="text-lg font-semibold w-36 text-center">
-            {new Date(`${currentMonth}-02`).toLocaleString('default', { month: 'long', year: 'numeric' })}
+            {new Date(`${currentMonth}-01`).toLocaleString('default', { month: 'long', year: 'numeric' })}
           </span>
-          <Button variant="outline" size="icon" onClick={() => handleMonthChange('next')}>
+          <Button variant="outline" size="icon" onClick={handleNextMonth}>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <Dialog open={isBudgetSettingsOpen} onOpenChange={setIsBudgetSettingsOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline">Manage Budgets</Button>
+              <Button variant="outline" className="w-full sm:w-auto">
+                Manage Budgets
+              </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
@@ -101,15 +159,15 @@ export default function BudgetOverview() {
               <BudgetSettings month={currentMonth} />
             </DialogContent>
           </Dialog>
-          <Button onClick={() => setShowAddModal(true)}>
+          <Button onClick={() => setShowAddModal(true)} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             Add Transaction
           </Button>
         </div>
       </div>
 
-      {/* Budget Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-4">
+      {/* Overview Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Budget</CardTitle>
@@ -156,76 +214,30 @@ export default function BudgetOverview() {
         </Card>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="bg-gradient-subtle shadow-soft hover:shadow-zenith transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Monthly Income</CardTitle>
-            <TrendingUp className="h-4 w-4 text-earth-ring" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-earth-ring">
-              {formatCurrency(monthlyStats.income)}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Foundation of prosperity
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-subtle shadow-soft hover:shadow-zenith transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Monthly Expenses</CardTitle>
-            <TrendingDown className="h-4 w-4 text-fire-ring" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-fire-ring">
-              {formatCurrency(monthlyStats.expenses)}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Energy directed outward
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-subtle shadow-soft hover:shadow-zenith transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Balance</CardTitle>
-            <DollarSign className="h-4 w-4 text-water-ring" />
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${monthlyStats.balance >= 0 ? 'text-water-ring' : 'text-fire-ring'}`}>
-              {formatCurrency(monthlyStats.balance)}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Flow of resources
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Budget Category Progress */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Category Budgets</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {budgets && budgets.length > 0 ? (
-              budgets.map(budget => (
-                <BudgetCategoryProgress
-                  key={budget.category}
-                  category={budget.category}
-                  spent={expensesByCategory?.[budget.category] || 0}
-                  budgeted={budget.amount}
-                />
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground">No budgets set for this month. Click 'Manage Budgets' to add some.</p>
-            )}
-          </CardContent>
-        </Card>
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Category Budgets</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {budgets && budgets.length > 0 ? (
+            budgets.map(budget => (
+              <BudgetCategoryProgress
+                key={budget.category}
+                category={budget.category}
+                spent={expensesByCategory?.[budget.category] || 0}
+                budgeted={budget.amount}
+              />
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No budgets set for this month. Click 'Manage Budgets' to add some.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
-        {/* Recent Transactions */}
+      {/* Recent Transactions */}
       <Card className="shadow-soft">
         <CardHeader>
           <CardTitle className="text-lg">Recent Transactions</CardTitle>
@@ -237,38 +249,78 @@ export default function BudgetOverview() {
               <p>No transactions yet. Start by adding your first transaction.</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {[...transactions].sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 5).map((transaction) => (
-                <div key={transaction.id} className="flex justify-between items-center p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
-                  <div>
-                    <p className="font-medium">{transaction.description}</p>
-                    <p className="text-sm text-muted-foreground">{transaction.category}</p>
+            <div className="space-y-4">
+              {transactions
+                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                .map(transaction => (
+                  <div key={transaction.id} className="flex items-center justify-between p-3 hover:bg-muted/50 rounded-lg transition-colors">
+                    <div className="flex items-center space-x-3">
+                      <div className={`p-2 rounded-full ${
+                        transaction.type === 'income' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+                      }`}>
+                        {transaction.type === 'income' ? (
+                          <TrendingUp className="h-4 w-4" />
+                        ) : (
+                          <TrendingDown className="h-4 w-4" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-medium">{transaction.description}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(transaction.date).toLocaleDateString()}
+                          {transaction.category && ` • ${transaction.category}`}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className={`font-medium ${
+                        transaction.type === 'income' ? 'text-green-600' : 'text-foreground'
+                      }`}>
+                        {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setEditingTransaction(transaction)}
+                        className="h-8 w-8"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteTransaction(transaction.id)}
+                        className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-100"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className={`font-bold ${transaction.type === 'income' ? 'text-earth-ring' : 'text-fire-ring'}`}>
-                      {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {transaction.date.toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                ))}
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Add Transaction Modal */}
+      {/* Modals */}
       <AddTransactionModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         onTransactionAdded={() => {
-          // No longer need to manually refresh, useLiveQuery handles it.
-          // We can add a toast message for better user feedback.
-          toast({ title: "Success", description: "Transaction added successfully." });
+          // The modal will handle the refresh internally
         }}
       />
+      
+      {editingTransaction && (
+        <EditTransactionModal
+          transaction={editingTransaction}
+          isOpen={!!editingTransaction}
+          onClose={() => setEditingTransaction(null)}
+          onSave={() => {
+            // The modal will handle the refresh internally
+          }}
+        />
+      )}
     </div>
   );
 }

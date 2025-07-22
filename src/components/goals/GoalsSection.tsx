@@ -241,55 +241,119 @@ export default function GoalsSection() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-earth bg-clip-text text-transparent">
-            Goals & Vision
-          </h1>
-          <p className="text-muted-foreground mt-1">Fire Ring - Decisive action toward your destiny</p>
-        </div>
-        <Button variant="earth" className="gap-2" onClick={() => setShowAddModal(true)}>
-          <Plus className="h-4 w-4" />
-          Set New Goal
+      {/* Professional Header */}
+      <div className="text-center space-y-4 mb-8">
+        <h1 className="text-3xl font-bold bg-gradient-zenith bg-clip-text text-transparent">
+          Goals & Aspirations
+        </h1>
+        <p className="text-muted-foreground max-w-2xl mx-auto">
+          Transform your dreams into achievable milestones. Track progress, build strategic plans, and reach your zenith.
+        </p>
+        <Button onClick={() => setShowAddModal(true)} className="bg-gradient-zenith hover:opacity-90">
+          <Plus className="mr-2 h-4 w-4" /> Create New Goal
         </Button>
+      </div>
+
+      {/* Goals Overview Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <Card className="bg-gradient-subtle shadow-soft hover:shadow-zenith transition-all duration-300">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Goals</CardTitle>
+            <Target className="h-4 w-4 text-fire-ring" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-fire-ring">{goals.length}</div>
+            <p className="text-xs text-muted-foreground mt-1">Active aspirations</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-subtle shadow-soft hover:shadow-zenith transition-all duration-300">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Completed</CardTitle>
+            <CheckCircle2 className="h-4 w-4 text-earth-ring" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-earth-ring">
+              {goals.filter(g => g.totalProgress >= g.targetAmount).length}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Goals achieved</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-subtle shadow-soft hover:shadow-zenith transition-all duration-300">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Value</CardTitle>
+            <TrendingUp className="h-4 w-4 text-water-ring" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-water-ring">
+              {formatCurrency(goals.reduce((sum, g) => sum + g.targetAmount, 0))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Combined targets</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Goals Grid */}
       {goals.length === 0 ? (
-        <Card className="shadow-soft">
-          <CardContent className="text-center py-12">
-            <Target className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
-            <h3 className="text-lg font-semibold mb-2">Forge Your Path</h3>
-            <p className="text-muted-foreground mb-6">
-              Set clear goals and pursue them with the determination of a samurai. Every goal is a battle to be won.
-            </p>
-            <Button variant="earth" className="gap-2" onClick={() => setShowAddModal(true)}>
-              <Plus className="h-4 w-4" />
-              Create Your First Goal
-            </Button>
+        <Card className="text-center py-16 bg-gradient-subtle shadow-soft">
+          <CardContent>
+            <div className="max-w-md mx-auto space-y-4">
+              <div className="w-20 h-20 mx-auto bg-gradient-zenith rounded-full flex items-center justify-center">
+                <Target className="h-10 w-10 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold bg-gradient-zenith bg-clip-text text-transparent">
+                Begin Your Journey
+              </h3>
+              <p className="text-muted-foreground leading-relaxed">
+                Every master starts with a vision. Create your first goal and begin the path to your zenith. 
+                Transform dreams into reality through strategic planning and consistent action.
+              </p>
+              <Button onClick={() => setShowAddModal(true)} className="bg-gradient-zenith hover:opacity-90 px-8 py-3">
+                <Plus className="mr-2 h-5 w-5" /> Create Your First Goal
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
           {goals.map((goal) => {
             const progress = calculateProgress(goal.totalProgress, goal.targetAmount);
             const daysRemaining = getDaysRemaining(goal.targetDate);
             
             return (
-              <Card key={goal.id} className="shadow-soft hover:shadow-zenith transition-all duration-300">
-                <CardHeader>
+              <Card key={goal.id} className={`relative overflow-hidden shadow-soft hover:shadow-zenith transition-all duration-300 border-l-4 ${
+                progress >= 100 ? 'border-earth-ring bg-earth-ring/5' : 
+                progress >= 75 ? 'border-water-ring bg-water-ring/5' : 
+                progress >= 50 ? 'border-fire-ring bg-fire-ring/5' : 
+                'border-void-ring bg-void-ring/5'
+              }`}>
+                <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-lg">{goal.title}</CardTitle>
-                      <p className="text-sm text-muted-foreground mt-1">{goal.description}</p>
+                    <div className="space-y-2 flex-1">
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-lg font-bold">{goal.title}</CardTitle>
+                        {progress >= 100 && <CheckCircle2 className="h-5 w-5 text-earth-ring" />}
+                      </div>
+                      {goal.description && (
+                        <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+                          {goal.description}
+                        </p>
+                      )}
                     </div>
-                    <Badge 
-                      variant={goal.category === 'financial' ? 'default' : 'secondary'}
-                      className="capitalize"
-                    >
-                      {goal.category}
-                    </Badge>
+                    <div className="flex flex-col items-end gap-2">
+                      <Badge variant={goal.category === 'financial' ? 'default' : 'secondary'} className="font-medium">
+                        {goal.category}
+                      </Badge>
+                      <div className={`text-xs font-medium px-2 py-1 rounded-full ${
+                        progress >= 100 ? 'bg-earth-ring/20 text-earth-ring' :
+                        progress >= 75 ? 'bg-water-ring/20 text-water-ring' :
+                        progress >= 50 ? 'bg-fire-ring/20 text-fire-ring' :
+                        'bg-void-ring/20 text-void-ring'
+                      }`}>
+                        {Math.round(progress)}%
+                      </div>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -414,7 +478,7 @@ export default function GoalsSection() {
 
       {/* Quick Stats */}
       {goals.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card className="bg-gradient-subtle shadow-soft">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Active Goals</CardTitle>
@@ -490,7 +554,7 @@ export default function GoalsSection() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="goal-targetAmount">Target Amount</Label>
                   <div className="relative">
