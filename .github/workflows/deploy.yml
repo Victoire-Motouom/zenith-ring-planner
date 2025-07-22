@@ -13,6 +13,10 @@ permissions:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,27 +32,30 @@ jobs:
           npm ci
           npm install -D @vitejs/plugin-react-swc
 
-      - name: Remove vite.config.js if it exists
-        run: |
-          if [ -f "vite.config.js" ]; then
-            rm vite.config.js
-          fi
-
       - name: Build
         env:
           VITE_BASE_URL: /zenith-ring-planner/
         run: |
+          # Create a copy of 404.html as index.html for GitHub Pages SPA support
+          cp public/404.html public/404.html.bak
+          cp public/index.html public/404.html
+          
+          # Build the app
           npm run build
+          
+          # Restore the original files
+          mv public/404.html.bak public/404.html
 
-      - name: Verify build output
-        run: |
-          ls -la dist/
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+        with:
+          static_site_generator: "vite"
 
-      - name: Deploy to gh-pages
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git config --global user.name 'GitHub Actions'
-          git config --global user.email 'actions@github.com'
-          git remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
-          npm run deploy
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'dist'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
