@@ -1,0 +1,27 @@
+# Environment configuration for GitHub Pages deployment
+# This file creates a new environment called 'github-pages'
+# with the necessary deployment protection rules
+
+# Environment name
+deployment_branch_policy:
+  # Allow deployments from any branch
+  protected_branches: false
+  custom_branch_policies: true
+
+# Environment protection rules
+# These rules define who can approve deployments and what checks must pass
+reviewers:
+  # No specific reviewers required
+  users: []
+  teams: []
+
+# Deployment branches
+# This allows deployments from any branch
+# You can restrict this to specific branches if needed
+deployment_branch_policy:
+  protected_branches: false
+  custom_branch_policies: true
+  # Uncomment and modify the following to restrict to specific branches
+  # custom_branch_policies:
+  #   - pattern: 'main'
+  #   - pattern: 'master'
