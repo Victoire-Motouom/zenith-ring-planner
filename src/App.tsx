@@ -2,13 +2,13 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, createBrowserRouter, createRoutesFromElements, RouterProvider } from "react-router-dom";
+import { createBrowserRouter, createRoutesFromElements, RouterProvider, Route } from "react-router-dom";
 import { ThemeProvider } from "./contexts/ThemeProvider";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { useEffect } from "react";
 import { processRecurringTransactions } from "./lib/database";
-import { ROUTER_BASE } from "./utils/constants";
+import { getBaseUrl } from "./utils/constants";
 
 const queryClient = new QueryClient();
 
@@ -39,27 +39,28 @@ const App = () => {
     processRecurringTransactions();
   }, []);
 
+  const router = createBrowserRouter(
+    createRoutesFromElements(
+      <Route path="/" element={<Index />}>
+        <Route path="*" element={<NotFound />} />
+      </Route>
+    ),
+    {
+      basename: getBaseUrl(),
+      future: {
+        v7_startTransition: true,
+        v7_relativeSplatPath: true
+      }
+    }
+  );
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <RouterProvider router={createBrowserRouter(
-            createRoutesFromElements(
-              <Route path="/" element={<Index />}>
-                <Route index element={<Index />} />
-                <Route path="*" element={<NotFound />} />
-              </Route>
-            ),
-            {
-              basename: ROUTER_BASE,
-              future: {
-                v7_startTransition: true,
-                v7_relativeSplatPath: true
-              }
-            }
-          )} />
+          <RouterProvider router={router} />
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>

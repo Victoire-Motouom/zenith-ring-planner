@@ -27,6 +27,8 @@ jobs:
         run: npm ci
 
       - name: Build
+        env:
+          VITE_BASE_URL: '/zenith-ring-planner/'
         run: |
           npm run build
           # Create a copy of index.html as 404.html for SPA routing
