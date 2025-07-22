@@ -17,11 +17,16 @@ export default defineConfig(({ mode }) => {
     server: {
       host: "::",
       port: 8080,
+      strictPort: true,
     },
     preview: {
       port: 8080,
       strictPort: true,
+      headers: {
+        'Cache-Control': 'public, max-age=0',
+      },
     },
+
     plugins: [
       react(),
       tsconfigPaths(),
@@ -154,15 +159,17 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: 'dist',
       assetsDir: 'assets',
-      sourcemap: false,
+      sourcemap: true,
       rollupOptions: {
         output: {
           manualChunks: {
             react: ['react', 'react-dom', 'react-router-dom'],
-            vendor: ['date-fns', 'dexie', 'dexie-react-hooks'],
+            vendor: ['dexie', 'dexie-react-hooks', 'date-fns'],
           },
         },
       },
+      chunkSizeWarningLimit: 1000,
+      emptyOutDir: true,
     },
   };
 });

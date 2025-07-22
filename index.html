@@ -24,6 +24,13 @@
     <link rel="icon" type="image/png" href="/zenith-ring-planner/logo.png" />
     <link rel="shortcut icon" href="/zenith-ring-planner/logo.png" />
     <base href="/zenith-ring-planner/" />
+    <script>
+      // Ensure the base URL is set correctly for GitHub Pages
+      const base = '/zenith-ring-planner/';
+      if (window.location.pathname !== base && !window.location.pathname.startsWith(base)) {
+        window.history.replaceState('', '', base + window.location.hash);
+      }
+    </script>
     <style>
       /* Desktop-like layout that scales to screen */
       html {
