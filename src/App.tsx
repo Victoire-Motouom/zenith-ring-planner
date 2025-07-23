@@ -8,7 +8,6 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { useEffect } from "react";
 import { processRecurringTransactions } from "./lib/database";
-import { ROUTER_BASE } from "./utils/constants";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +38,15 @@ const App = () => {
     processRecurringTransactions();
   }, []);
 
+  // Get the correct base path for the router
+  const getBasename = () => {
+    // In development, use no basename
+    if (import.meta.env.DEV) return '/';
+    
+    // For GitHub Pages, use the repository name as basename
+    return '/zenith-ring-planner';
+  };
+
   const router = createBrowserRouter(
     createRoutesFromElements(
       <Route path="/" element={<Index />}>
@@ -46,7 +54,7 @@ const App = () => {
       </Route>
     ),
     {
-      basename: ROUTER_BASE,
+      basename: getBasename(),
       future: {
         // Enable future flags for React Router
         // @ts-ignore - These are valid future flags but not in the type definitions yet
