@@ -74,14 +74,14 @@ const Index = (): JSX.Element => {
   // No need to check for focus page anymore as we've removed it
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex flex-col min-h-screen bg-background">
+      <main className="flex-1 overflow-y-auto p-4 pb-24 sm:pb-28">
+        {renderSection()}
+      </main>
       <Navigation 
         activeSection={activeSection} 
         onSectionChange={handleSectionChange} 
       />
-      <main className="flex-1 overflow-y-auto p-6">
-        {renderSection()}
-      </main>
     </div>
   );
 };
