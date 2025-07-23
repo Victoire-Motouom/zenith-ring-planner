@@ -31,14 +31,17 @@
       const base = '/zenith-ring-planner/';
       
       // Set base URL for the application
-      if (!document.baseURI.endsWith(base) && !document.baseURI.endsWith(base + 'index.html')) {
-        const newPath = window.location.pathname.endsWith('/') 
-          ? window.location.pathname + 'index.html' 
-          : window.location.pathname;
-        
-        if (!newPath.endsWith('index.html')) {
-          window.history.replaceState('', '', base + newPath.split('/').pop() || 'index.html');
-        }
+      if (window.location.pathname !== base && !window.location.pathname.startsWith(base)) {
+        // If we're not at the base URL, redirect to it
+        const newPath = base + (window.location.hash || '');
+        window.history.replaceState('', '', newPath);
+      }
+      
+      // Make sure the base tag is set correctly
+      if (!document.querySelector('base')) {
+        const baseTag = document.createElement('base');
+        baseTag.href = base;
+        document.head.prepend(baseTag);
       }
     </script>
     <style>
@@ -207,7 +210,7 @@
     <meta property="og:title" content="Zenith Planner - Master Your Path" />
     <meta property="og:description" content="A mindful approach to budgeting and daily planning inspired by Miyamoto Musashi's Five Rings" />
     <meta property="og:type" content="website" />
-    <script type="module" crossorigin src="/zenith-ring-planner/assets/index-fy0tSt7K.js"></script>
+    <script type="module" crossorigin src="/zenith-ring-planner/assets/index-B1ChgvVr.js"></script>
     <link rel="modulepreload" crossorigin href="/zenith-ring-planner/assets/react-BhhCY37T.js">
     <link rel="modulepreload" crossorigin href="/zenith-ring-planner/assets/vendor-C2wpnH9a.js">
     <link rel="stylesheet" crossorigin href="/zenith-ring-planner/assets/index-BPFByeLy.css">
