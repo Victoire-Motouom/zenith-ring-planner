@@ -30,17 +30,17 @@ export default function BudgetOverview() {
   
   const { toast } = useToast();
   
-  // Get transactions for the current month
+  // Get transactions for the selected month
   const transactions = useLiveQuery(async () => {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const [year, month] = currentMonth.split('-').map(Number);
+    const startOfMonth = new Date(year, month - 1, 1);
+    const endOfMonth = new Date(year, month, 0);
     
     return db.transactions
       .where('date')
-      .between(startOfMonth, endOfMonth)
+      .between(startOfMonth, endOfMonth, true, true)
       .toArray();
-  }, []);
+  }, [currentMonth]);
 
   // Get budgets for the current month
   const budgets = useLiveQuery(async () => {
@@ -103,14 +103,14 @@ export default function BudgetOverview() {
 
   const handlePrevMonth = useCallback(() => {
     const [year, month] = currentMonth.split('-').map(Number);
-    const newDate = new Date(year, month - 2, 1);
-    setCurrentMonth(newDate.toISOString().slice(0, 7));
+    const newDate = new Date(year, month - 1, 0); // Go to last day of previous month
+    setCurrentMonth(`${newDate.getFullYear()}-${String(newDate.getMonth() + 1).padStart(2, '0')}`);
   }, [currentMonth]);
 
   const handleNextMonth = useCallback(() => {
     const [year, month] = currentMonth.split('-').map(Number);
-    const newDate = new Date(year, month, 1);
-    setCurrentMonth(newDate.toISOString().slice(0, 7));
+    const newDate = new Date(year, month, 1); // Go to first day of next month
+    setCurrentMonth(`${newDate.getFullYear()}-${String(newDate.getMonth() + 1).padStart(2, '0')}`);
   }, [currentMonth]);
 
   // Calculate budget summary

@@ -4,7 +4,7 @@ import { db, TimeSlot, RecurrenceRule, RecurrenceRuleWithDate } from './database
 type RecurrenceFrequency = 'daily' | 'weekdays' | 'weekly' | 'monthly' | 'yearly' | 'custom';
 
 interface GenerateRecurringTimeSlotsParams {
-  timeSlot: Omit<TimeSlot, 'id' | 'createdAt'>;
+  timeSlot: TimeSlot; // Accept a full TimeSlot with id
   recurrence: RecurrenceRuleWithDate;
   endDate: Date;
 }
@@ -16,30 +16,17 @@ export async function generateRecurringTimeSlots({
   timeSlot,
   recurrence,
   endDate
-}: GenerateRecurringTimeSlotsParams): Promise<Omit<TimeSlot, 'id' | 'createdAt'>[]> {
+}: GenerateRecurringTimeSlotsParams): Promise<Omit<TimeSlot, 'id'>[]> {
   const { frequency, interval = 1, daysOfWeek = [] } = recurrence;
   const startDate = new Date(timeSlot.date);
-  const result: Omit<TimeSlot, 'id' | 'createdAt'>[] = [];
-  
-  // Add the original time slot as the first occurrence
-  const originalSlot = {
-    ...timeSlot,
-    isRecurring: true,
-    parentId: undefined,
-    isInstance: false,
-    recurrenceId: undefined,
-    originalStartTime: timeSlot.startTime,
-    originalEndTime: timeSlot.endTime,
-  };
-  
-  // Add the original time slot to the database
-  const parentId = await db.timeSlots.add(originalSlot as TimeSlot);
-  
-  // Generate occurrences based on the frequency
+  const result: Omit<TimeSlot, 'id'>[] = [];
+  const parentId = timeSlot.id!;
   let currentDate = startDate;
   let occurrenceCount = 0;
-  const maxOccurrences = 365 * 5; // Safety limit to prevent infinite loops
-  
+  const maxOccurrences = 365 * 5;
+
+  // Do NOT add the original slot to the database here
+
   while (isBefore(currentDate, endDate) && occurrenceCount < maxOccurrences) {
     // Move to the next occurrence based on frequency
     switch (frequency) {
@@ -48,21 +35,20 @@ export async function generateRecurringTimeSlots({
         break;
       case 'weekdays':
         currentDate = addDays(currentDate, 1);
-        // Skip weekends
         while (isWeekend(currentDate)) {
           currentDate = addDays(currentDate, 1);
         }
         break;
       case 'weekly':
         currentDate = addWeeks(currentDate, interval);
-        // If specific days are selected, generate slots for each selected day
         if (daysOfWeek && daysOfWeek.length > 0) {
           const slotsForWeek = daysOfWeek.map(dayIndex => {
             const slotDate = addDays(currentDate, dayIndex - currentDate.getDay());
+            // Skip if slotDate is the same as the parent/original slot date
+            if (isSameDay(slotDate, startDate)) return null;
             return createRecurringSlot(timeSlot, slotDate, parentId);
-          });
+          }).filter((slot): slot is Omit<TimeSlot, 'id'> => !!slot);
           result.push(...slotsForWeek);
-          // Skip to next week
           currentDate = addWeeks(currentDate, interval);
           continue;
         }
@@ -76,15 +62,12 @@ export async function generateRecurringTimeSlots({
       default:
         throw new Error(`Unsupported recurrence frequency: ${frequency}`);
     }
-    
-    // For non-weekly or weekly without specific days, add the slot
-    if (frequency !== 'weekly' || !daysOfWeek || daysOfWeek.length === 0) {
+    // Skip if currentDate is the same as the parent/original slot date
+    if ((frequency !== 'weekly' || !daysOfWeek || daysOfWeek.length === 0) && !isSameDay(currentDate, startDate)) {
       result.push(createRecurringSlot(timeSlot, currentDate, parentId));
     }
-    
     occurrenceCount++;
   }
-  
   return result;
 }
 
@@ -92,11 +75,11 @@ export async function generateRecurringTimeSlots({
  * Helper function to create a recurring time slot instance
  */
 function createRecurringSlot(
-  baseSlot: Omit<TimeSlot, 'id' | 'createdAt'>,
+  baseSlot: Omit<TimeSlot, 'id'>,
   date: Date,
   parentId: number
-): Omit<TimeSlot, 'id' | 'createdAt'> {
-  return {
+): Omit<TimeSlot, 'id'> {
+  const slot = {
     ...baseSlot,
     date: format(date, 'yyyy-MM-dd'),
     isRecurring: true,
@@ -105,7 +88,11 @@ function createRecurringSlot(
     recurrenceId: parentId,
     originalStartTime: baseSlot.startTime,
     originalEndTime: baseSlot.endTime,
+    createdAt: new Date(),
   };
+  // Ensure id is not present
+  delete (slot as any).id;
+  return slot;
 }
 
 /**

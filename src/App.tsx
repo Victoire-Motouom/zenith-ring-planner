@@ -8,7 +8,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { useEffect } from "react";
 import { processRecurringTransactions } from "./lib/database";
-import { getBaseUrl } from "./utils/constants";
+import { ROUTER_BASE } from "./utils/constants";
 
 const queryClient = new QueryClient();
 
@@ -46,9 +46,12 @@ const App = () => {
       </Route>
     ),
     {
-      basename: getBaseUrl(),
+      basename: ROUTER_BASE,
       future: {
+        // Enable future flags for React Router
+        // @ts-ignore - These are valid future flags but not in the type definitions yet
         v7_startTransition: true,
+        // @ts-ignore
         v7_relativeSplatPath: true
       }
     }

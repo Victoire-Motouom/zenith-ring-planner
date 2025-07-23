@@ -1,60 +1,128 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RecurrenceSettings } from './RecurrenceSettings';
-import { db, Task, TimeSlot, RecurrenceRule, RecurrenceRuleWithDate, toRecurrenceRule, fromRecurrenceRule } from '@/lib/database';
+import { db, TimeSlot, Task, RecurrenceRuleWithDate, toRecurrenceRule, fromRecurrenceRule } from '@/lib/database';
 import { generateRecurringTimeSlots } from '@/lib/recurrence';
 import { toast } from '@/components/ui/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { AlertTriangle, Clock } from 'lucide-react';
 
+interface ConflictInfo {
+  show: boolean;
+  conflicts: Array<{ slot: SlotCheck; conflict: any }>;
+}
+
 interface AddTimeSlotModalProps {
   isOpen: boolean;
   onClose: () => void;
-  date: string; // YYYY-MM-DD
+  onSave: (timeSlot: TimeSlot) => Promise<void>;
+  date: string;
   initialData?: TimeSlot | null;
-  onSave: () => void;
 }
 
+type SlotCheck = { id?: number; startTime: string; endTime: string; date: string };
+
 export default function AddTimeSlotModal({ isOpen, onClose, date, initialData, onSave }: AddTimeSlotModalProps) {
+  // Form state
   const [title, setTitle] = useState(initialData?.title || '');
+  const [description, setDescription] = useState(initialData?.description || '');
   const [startTime, setStartTime] = useState(initialData?.startTime || '09:00');
   const [endTime, setEndTime] = useState(initialData?.endTime || '10:00');
-  const [linkedTaskId, setLinkedTaskId] = useState<number | undefined>(initialData?.taskId);
+  const [category, setCategory] = useState(initialData?.category || 'work');
   const [isRecurring, setIsRecurring] = useState(initialData?.isRecurring || false);
-  const [description, setDescription] = useState(initialData?.description || '');
-  const [category, setCategory] = useState(initialData?.category || '');
-  const [recurrenceRule, setRecurrenceRule] = useState<RecurrenceRuleWithDate | undefined>(
+  
+  // UI state
+  const [, setError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [_forceOverride, setForceOverride] = useState(false);
+  const [conflictInfo, setConflictInfo] = useState<ConflictInfo>({ 
+    show: false, 
+    conflicts: [] 
+  });
+  
+  // Data state
+  const [linkedTaskId, setLinkedTaskId] = useState<number | undefined>(initialData?.taskId);
+  const defaultRecurrenceRule: RecurrenceRuleWithDate = {
+    frequency: 'weekly',
+    interval: 1,
+    count: undefined,
+    endDate: undefined,
+    daysOfWeek: [new Date(date).getDay()],
+    exceptions: []
+  } as RecurrenceRuleWithDate;
+
+  const [recurrenceRule, setRecurrenceRule] = useState<RecurrenceRuleWithDate>(
     initialData?.recurrenceRule 
-      ? fromRecurrenceRule(initialData.recurrenceRule)
-      : {
-          frequency: 'weekly',
-          interval: 1,
-          daysOfWeek: [new Date().getDay()],
-        }
+      ? fromRecurrenceRule(initialData.recurrenceRule) 
+      : defaultRecurrenceRule
   );
 
-  const handleRecurrenceChange = (rule: RecurrenceRuleWithDate) => {
-    setRecurrenceRule(rule);
+  const handleRecurrenceChange = useCallback((rule: Partial<RecurrenceRuleWithDate>) => {
+    setRecurrenceRule(prev => ({
+      ...prev,
+      ...rule,
+      daysOfWeek: rule.daysOfWeek || prev.daysOfWeek,
+      exceptions: rule.exceptions || prev.exceptions
+    }));
+  }, []);
+
+  // Convert RecurrenceRuleWithDate to RecurrenceRule for database
+  const getRecurrenceRuleForDb = useCallback((rule: RecurrenceRuleWithDate) => {
+    try {
+      const result = toRecurrenceRule(rule);
+      return result || undefined;
+    } catch (error) {
+      console.error('Error converting recurrence rule:', error);
+      return undefined;
+    }
+  }, []);
+
+  // Handle task link change - used in the Select component
+  const handleTaskLinkChange = (value: string) => {
+    setLinkedTaskId(value ? parseInt(value, 10) : undefined);
   };
-  
+
+  const handleOpenChange = useCallback((open: boolean) => {
+    if (!open) {
+      onClose();
+    }
+  }, [onClose]);
+
+  const closeModal = useCallback(() => {
+    onClose();
+  }, [onClose]);
+
   // Reset form when initialData changes
   useEffect(() => {
     if (initialData) {
       setTitle(initialData.title);
+      setDescription(initialData.description || '');
       setStartTime(initialData.startTime);
       setEndTime(initialData.endTime);
+      setCategory(initialData.category || 'work');
+      setIsRecurring(initialData.isRecurring || false);
       setLinkedTaskId(initialData.taskId);
+      if (initialData.recurrenceRule) {
+        setRecurrenceRule(fromRecurrenceRule(initialData.recurrenceRule));
+      }
     } else {
       setTitle('');
+      setDescription('');
       setStartTime('09:00');
       setEndTime('10:00');
+      setCategory('work');
+      setIsRecurring(false);
       setLinkedTaskId(undefined);
+      setRecurrenceRule(defaultRecurrenceRule);
     }
-  }, [initialData]);
+    setError('');
+    setForceOverride(false);
+    setConflictInfo({ show: false, conflicts: [] });
+  }, [initialData, date]);
 
   const tasksForDay = useLiveQuery(() => {
     const dayStart = new Date(date);
@@ -169,12 +237,12 @@ export default function AddTimeSlotModal({ isOpen, onClose, date, initialData, o
 
   // Real-time conflict checking
   const currentConflict = useMemo(() => {
-    if (!startTime || !endTime) return null;
+    if (!startTime || !endTime || !existingTimeSlots) return null;
     return checkTimeConflict(startTime, endTime);
-  }, [startTime, endTime, existingTimeSlots]);
+  }, [startTime, endTime, existingTimeSlots, checkTimeConflict]);
 
   // Function to delete conflicting slot
-  const deleteConflictingSlot = async () => {
+  const deleteConflictingSlot = useCallback(async () => {
     if (currentConflict?.conflictingSlot?.id) {
       try {
         await db.timeSlots.delete(currentConflict.conflictingSlot.id);
@@ -183,6 +251,7 @@ export default function AddTimeSlotModal({ isOpen, onClose, date, initialData, o
           description: `Deleted "${currentConflict.conflictingSlot.title}" to resolve conflict.`,
           variant: 'default'
         });
+        return true;
       } catch (error) {
         console.error('Failed to delete conflicting slot:', error);
         toast({ 
@@ -190,239 +259,214 @@ export default function AddTimeSlotModal({ isOpen, onClose, date, initialData, o
           description: 'Failed to delete conflicting slot.', 
           variant: 'destructive' 
         });
+        return false;
       }
     }
-  };
+    return false;
+  }, [currentConflict]);
 
-  const resetForm = () => {
-    setTitle('');
-    setStartTime('09:00');
-    setEndTime('10:00');
-    setLinkedTaskId(undefined);
-  };
+  // Reset form to default values
+  const resetForm = useCallback(() => {
+    if (initialData) {
+      setTitle(initialData.title || '');
+      setDescription(initialData.description || '');
+      setStartTime(initialData.startTime || '09:00');
+      setEndTime(initialData.endTime || '10:00');
+      setCategory(initialData.category || 'work');
+      setIsRecurring(initialData.isRecurring || false);
+      setLinkedTaskId(initialData.taskId);
+      if (initialData.recurrenceRule) {
+        setRecurrenceRule(fromRecurrenceRule(initialData.recurrenceRule));
+      } else {
+        setRecurrenceRule(defaultRecurrenceRule);
+      }
+    } else {
+      setTitle('');
+      setDescription('');
+      setStartTime('09:00');
+      setEndTime('10:00');
+      setCategory('work');
+      setIsRecurring(false);
+      setLinkedTaskId(undefined);
+      setRecurrenceRule(defaultRecurrenceRule);
+    }
+  }, [initialData]);
+  
+  // Reset form when initialData or date changes
+  useEffect(() => {
+    resetForm();
+  }, [initialData, date, resetForm]);
 
-  const handleSave = async (forceOverride = false, isRecurringSave: boolean = false) => {
+  const handleSave = async (forceOverride = false) => {
     if (!title || !startTime || !endTime) {
-      toast({ title: 'Error', description: 'Please fill in all time slot details.', variant: 'destructive' });
+      toast({ title: 'Error', description: 'Please fill in all required fields', variant: 'destructive' });
       return;
     }
 
-    // Convert recurrence rule to database format
-    const dbRecurrenceRule = recurrenceRule ? toRecurrenceRule(recurrenceRule) : undefined;
-
-    // Check for time conflicts (unless forcing override)
-    if (!forceOverride) {
-      type SlotCheck = { id?: number; startTime: string; endTime: string; date: string };
-      const slotsToCheck: SlotCheck[] = [];
-      
-      if (isRecurring && recurrenceRule) {
-        // For recurring slots, we'll check conflicts for each generated instance
-        const endDate = new Date();
-        endDate.setMonth(endDate.getMonth() + 3); // Check 3 months ahead for conflicts
-        
-        const recurringSlots = generateRecurringTimeSlots(
-          {
-            title,
-            startTime,
-            endTime,
-            date,
-            taskId: linkedTaskId,
-            completed: initialData?.completed || false,
-            order: initialData?.order || 0,
-            isRecurring: true,
-            isInstance: false,
-            parentId: initialData?.id,
-            description,
-            category,
-          },
-          recurrenceRule,
-          endDate
-        );
-        
-        slotsToCheck.push(...recurringSlots);
-      } else {
-        // For single time slot
-        slotsToCheck.push({
-          id: initialData?.id,
-          startTime,
-          endTime,
-          date,
-        });
-      }
-
-      // Check for conflicts with existing time slots
-      const hasConflict = await Promise.all(
-        slotsToCheck.map(async (slot) => {
-          const conflictingSlots = await db.timeSlots
-            .where('date')
-            .equals(slot.date)
-            .and((existingSlot: TimeSlot) => {
-              if (initialData?.id && existingSlot.id === initialData.id) return false;
-              return timeRangesOverlap(
-                slot.startTime,
-                slot.endTime,
-                existingSlot.startTime,
-                existingSlot.endTime
-              );
-            })
-            .toArray();
-          return conflictingSlots.length > 0;
-        })
-      ).then(results => results.some(hasConflict => hasConflict));
-
-      if (hasConflict) {
-        toast({
-          title: 'Time Conflict',
-          description: 'One or more time slots overlap with existing ones. Please choose different times or enable "Force Save" to override.',
-          variant: 'destructive',
-        });
-        return;
-      }
+    // Check if end time is after start time
+    if (endTime <= startTime) {
+      toast({ title: 'Error', description: 'End time must be after start time', variant: 'destructive' });
+      return;
     }
-    
-    try {
 
-      // Create base time slot data with proper types
-      const timeSlotData: Omit<TimeSlot, 'id' | 'createdAt'> = {
+    try {
+      setIsSaving(true);
+      
+          // Prepare the time slot data
+      const timeSlotData: Omit<TimeSlot, 'id'> & { updatedAt?: Date } = {
         title,
+        description,
         startTime,
         endTime,
         date,
-        description,
         category,
-        taskId: linkedTaskId,
-        completed: initialData?.completed || false,
-        order: initialData?.order || 0,
         isRecurring,
-        recurrenceRule: dbRecurrenceRule,
+        taskId: linkedTaskId,
+        recurrenceRule: isRecurring ? getRecurrenceRuleForDb(recurrenceRule) : undefined,
         parentId: initialData?.parentId,
-        isInstance: false,
+        completed: initialData?.completed || false,
+        createdAt: initialData?.createdAt || new Date(),
+        updatedAt: new Date()
       };
-      
+
+      // Check for time conflicts (unless forcing override)
+      if (!forceOverride) {
+        const slotsToCheck: SlotCheck[] = [{
+          id: initialData?.id,
+          startTime,
+          endTime,
+          date
+        }];
+
+        // Check for conflicts with existing time slots
+        const conflicts = await Promise.all(
+          slotsToCheck.map(async (slot) => {
+            const existingSlots = await db.timeSlots
+              .where('date')
+              .equals(slot.date)
+              .filter(s => {
+                return (
+                  s.id !== slot.id && // Don't check against self
+                  timeRangesOverlap(s.startTime, s.endTime, slot.startTime, slot.endTime)
+                );
+              })
+              .toArray();
+              
+            return {
+              slot,
+              conflicts: existingSlots,
+            };
+          })
+        );
+        
+        // Filter out slots with no conflicts
+        const slotsWithConflicts = conflicts.filter(({ conflicts }) => conflicts.length > 0);
+        
+        if (slotsWithConflicts.length > 0) {
+          setError('There are time conflicts with existing time slots');
+          setConflictInfo({
+            show: true,
+            conflicts: slotsWithConflicts.flatMap(({ slot, conflicts }) => 
+              conflicts.map(conflict => ({ slot, conflict }))
+            )
+          });
+          return;
+        }
+      }
+
       if (initialData?.id) {
         // Update existing time slot
         await db.timeSlots.update(initialData.id, timeSlotData);
-        
-        // If this is a recurring event and the recurrence rule changed, update all future instances
-        if (isRecurring && recurrenceRule) {
-          const endDate = new Date();
-          endDate.setFullYear(endDate.getFullYear() + 1); // 1 year ahead
-          
-          const recurringSlots = generateRecurringTimeSlots(
-            {
-              ...timeSlotData,
-              id: initialData.id,
-            },
-            recurrenceRule,
-            endDate
-          );
-          
-          // Remove existing instances and create new ones
-          await db.timeSlots
+        // If this is a recurring event, update all future instances
+        if (isRecurring && initialData.recurrenceRule) {
+          const futureSlots = await db.timeSlots
             .where('parentId')
             .equals(initialData.id)
-            .delete();
-            
-          await db.timeSlots.bulkAdd(
-            recurringSlots.map(slot => ({
-              ...slot,
-              createdAt: new Date(),
-              isInstance: true,
+            .and(slot => new Date(slot.date) > new Date(date))
+            .toArray();
+
+          for (const slot of futureSlots) {
+            await db.timeSlots.update(slot.id, {
+              ...timeSlotData,
+              date: slot.date,
               parentId: initialData.id,
-            }))
-          );
+              createdAt: slot.createdAt,
+              completed: slot.completed,
+            } as Omit<TimeSlot, 'id'>);
+          }
         }
-        
         toast({
           title: 'Time slot updated',
-          description: isRecurring 
-            ? 'Your recurring time slot has been updated.'
-            : 'Your time slot has been updated.',
-          variant: 'default',
+          description: 'Your time slot has been updated successfully.',
         });
       } else {
-        if (isRecurring && recurrenceRule) {
-          // Create a new recurring series
-          const endDate = new Date();
-          endDate.setFullYear(endDate.getFullYear() + 1); // 1 year ahead
-          
-          // Create parent slot with proper types
-          const parentSlot: TimeSlot = {
-            ...timeSlotData,
-            id: undefined, // Will be set by the database
-            createdAt: new Date(),
-            isInstance: false,
-            parentId: undefined,
-          };
-          
-          // Add the parent slot with type assertion
-          const parentId = await db.timeSlots.add(parentSlot as TimeSlot);
-          
-          // Generate and add recurring instances
-          const recurringSlots = generateRecurringTimeSlots(
-            {
-              ...parentSlot,
-              id: parentId,
-            },
-            recurrenceRule,
-            endDate
-          );
-          
-          // Add recurring instances with proper typing
-          await db.timeSlots.bulkAdd(
-            recurringSlots.map(slot => ({
-              ...slot,
-              id: undefined, // Let the database assign IDs
-              createdAt: new Date(),
-              isInstance: true,
-              parentId: parentId as number,
-            } as TimeSlot))
-          );
-          
-          toast({
-            title: 'Recurring time slot added',
-            description: `Your time slot has been scheduled to repeat ${recurrenceRule.frequency === 'weekdays' ? 'on weekdays' : recurrenceRule.frequency} for the next year.`,
-            variant: 'default',
-          });
-        } else {
-          // Create a single time slot
-          await db.timeSlots.add({
-            ...timeSlotData,
-            createdAt: new Date(),
-          });
-          
-          toast({
-            title: 'Time slot added',
-            description: 'Your time slot has been scheduled.',
-            variant: 'default',
-          });
-        }
+        // Only call onSave, let parent handle DB logic
+        // Compose the time slot object
+        const timeSlot: TimeSlot = {
+          id: undefined,
+          title,
+          description,
+          startTime,
+          endTime,
+          date,
+          category,
+          isRecurring,
+          recurrenceRule: isRecurring ? {
+            ...recurrenceRule,
+            endDate: recurrenceRule?.endDate ? recurrenceRule.endDate.toISOString() : undefined
+          } : undefined,
+          taskId: linkedTaskId,
+          completed: false,
+          createdAt: new Date()
+        };
+        await onSave(timeSlot);
+        toast({
+          title: 'Time slot created',
+          description: 'Your time slot has been created successfully.',
+        });
+        onClose();
+        setIsSaving(false);
+        return;
       }
-      
-      onSave();
+      // For update, also call onSave to update parent state
+      const timeSlot: TimeSlot = {
+        id: initialData?.id,
+        title,
+        description,
+        startTime,
+        endTime,
+        date,
+        category,
+        isRecurring,
+        recurrenceRule: isRecurring ? {
+          ...recurrenceRule,
+          endDate: recurrenceRule?.endDate ? recurrenceRule.endDate.toISOString() : undefined
+        } : undefined,
+        taskId: linkedTaskId,
+        completed: initialData?.completed || false,
+        createdAt: initialData?.createdAt ? new Date(initialData.createdAt) : new Date()
+      };
+      await onSave(timeSlot);
       onClose();
     } catch (error) {
-      console.error('Failed to save time slot:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to save time slot. Please try again.',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const handleOpenChange = (open: boolean) => {
-    if (!open) {
-      resetForm();
-      onClose();
+      console.error('Error saving time slot:', error);
+      setError('An error occurred while saving the time slot. Please try again.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent>
+      <DialogContent 
+        className="sm:max-w-[600px]"
+        aria-describedby="time-slot-dialog-description"
+      >
         <DialogHeader>
-          <DialogTitle>Add Time Slot</DialogTitle>
+          <DialogTitle>{initialData ? 'Edit Time Slot' : 'Add New Time Slot'}</DialogTitle>
+          <p id="time-slot-dialog-description" className="sr-only">
+            {initialData ? 'Edit an existing time slot' : 'Create a new time slot'}
+          </p>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">

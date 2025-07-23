@@ -1,198 +1,221 @@
-import { useState, useCallback } from 'react';
+import { useState, useMemo, lazy, Suspense, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, ChevronLeft, ChevronRight, Clock, Target, Zap, Calendar } from 'lucide-react';
-import AddTimeSlotModal from '@/components/planner/AddTimeSlotModal';
-import DraggableTimeSlot from './DraggableTimeSlot';
+import { Plus, ChevronLeft, ChevronRight, Clock, Target, Zap } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, Task, TimeSlot } from '@/lib/database';
-import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { db, TimeSlot } from '@/lib/database';
+import { toast } from '@/hooks/use-toast';
 
-// Type for drag and drop result
-interface DropResult {
-  draggableId: string;
-  type: string;
-  reason: string;
-  source: {
-    index: number;
-    droppableId: string;
-  };
-  destination?: {
-    droppableId: string;
-    index: number;
-  };
+// Lazy load the AddTimeSlotModal component
+const AddTimeSlotModal = lazy(() => import('./AddTimeSlotModal'));
+
+// Type for time slot with optional task
+interface TimeSlotWithTask extends TimeSlot {
+  task?: any; // Simplified for now, should be properly typed
 }
 
-// Mock components for when react-beautiful-dnd fails to load
-const MockDragDropContext = ({ children }: { children: React.ReactNode }) => <div>{children}</div>;
-const MockDroppable = ({ children }: { children: (provided: any) => React.ReactNode }) => (
-  <div>{children({})}</div>
-);
+// DraggableTimeSlot and TimeSlotsList are not used for now, so we omit them for clarity
 
-// Use dynamic import with error boundary
-let DragDropContext: React.ComponentType<any> = MockDragDropContext;
-let Droppable: React.ComponentType<any> = MockDroppable;
-
-// Try to load react-beautiful-dnd
-const loadRBD = async () => {
-  try {
-    const rbd = await import('react-beautiful-dnd');
-    DragDropContext = rbd.DragDropContext;
-    Droppable = rbd.Droppable;
-  } catch (e) {
-    console.warn('react-beautiful-dnd failed to load, using mock components', e);
+function TimeSlotsList({ timeSlots, onEdit, onDelete }: {
+  timeSlots: TimeSlotWithTask[];
+  onEdit: (slot: TimeSlotWithTask) => void;
+  onDelete: (id: number) => void;
+}) {
+  if (!timeSlots.length) {
+    return <div className="text-muted-foreground text-center py-4">No time slots planned for today.</div>;
   }
-};
+  return (
+    <div className="space-y-2">
+      {timeSlots.map((slot: TimeSlotWithTask) => (
+        <div key={slot.id} className="flex items-center justify-between border rounded p-2">
+          <div>
+            <div className="font-medium">{slot.startTime} - {slot.endTime}</div>
+            <div className="text-sm text-muted-foreground">{slot.title}</div>
+          </div>
+          <div className="flex space-x-2">
+            <Button size="sm" variant="outline" onClick={() => onEdit(slot)}>Edit</Button>
+            <Button size="sm" variant="destructive" onClick={() => onDelete(slot.id as number)}>Delete</Button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
-const PlannerView = () => {
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [isModalOpen, setIsModalOpen] = useState(false);
+export default function PlannerView() {
+  const [currentDate, setCurrentDate] = useState<Date>(new Date());
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
+  const [isClient, setIsClient] = useState<boolean>(false);
 
-  const dateString = selectedDate.toISOString().slice(0, 10); // YYYY-MM-DD
+  // Format the current date as YYYY-MM-DD for database queries
+  const dateString = format(currentDate, 'yyyy-MM-dd');
 
-  const handleDateChange = (direction: 'prev' | 'next') => {
-    setSelectedDate(current => {
-      const newDate = new Date(current);
-      newDate.setDate(newDate.getDate() + (direction === 'next' ? 1 : -1));
+  // Fetch time slots for the current date
+  const timeSlots = useLiveQuery(
+    () => db.timeSlots.where('date').equals(dateString).toArray(),
+    [dateString]
+  );
+
+  // Combine time slots with task data (simplified for now)
+  const timeSlotsWithTasks = useMemo(() => {
+    if (!timeSlots) return [];
+    return timeSlots.map(slot => ({
+      ...slot,
+      task: undefined
+    }));
+  }, [timeSlots]);
+
+  // Calculate total planned time, completed slots, and productivity rate
+  const totalPlannedMinutes = useMemo(() => {
+    if (!timeSlots) return 0;
+    return timeSlots.reduce((total, slot) => {
+      const start = new Date(`2000-01-01T${slot.startTime}:00`);
+      const end = new Date(`2000-01-01T${slot.endTime}:00`);
+      const duration = (end.getTime() - start.getTime()) / (1000 * 60);
+      return total + duration;
+    }, 0);
+  }, [timeSlots]);
+
+  const completedSlots = useMemo(() => {
+    if (!timeSlots) return 0;
+    return timeSlots.filter(slot => slot.completed).length;
+  }, [timeSlots]);
+
+  const totalSlots = timeSlots?.length || 0;
+  const productivityRate = totalSlots > 0 ? Math.round((completedSlots / totalSlots) * 100) : 0;
+
+  // Set isClient to true after component mounts (to avoid hydration issues)
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Navigation handlers
+  const goToPreviousDay = () => {
+    setCurrentDate(prev => {
+      const newDate = new Date(prev);
+      newDate.setDate(newDate.getDate() - 1);
       return newDate;
     });
   };
 
-  const timeSlotsWithTasks = useLiveQuery(async (): Promise<(TimeSlot & { task?: Task })[]> => {
-    if (!db) return [];
-    const slots = await db.timeSlots
-      .where('date')
-      .equals(dateString)
-      .sortBy('order');
-      
-    const slotsWithTasks = await Promise.all(
-      slots.map(async (slot) => {
-        const task: Task | undefined = slot.taskId ? await db.tasks.get(slot.taskId) : undefined;
-        return { ...slot, task };
-      })
-    );
-    return slotsWithTasks;
-  }, [dateString]);
+  const goToNextDay = () => {
+    setCurrentDate(prev => {
+      const newDate = new Date(prev);
+      newDate.setDate(newDate.getDate() + 1);
+      return newDate;
+    });
+  };
 
-  const completedSlots = timeSlotsWithTasks?.filter(slot => slot.completed === true).length || 0;
-  const totalSlots = timeSlotsWithTasks?.length || 0;
-  const productivityRate = totalSlots > 0 ? Math.round((completedSlots / totalSlots) * 100) : 0;
+  // Time slot handlers
+  const handleAddTimeSlot = () => {
+    setSelectedSlot(null);
+    setIsModalOpen(true);
+  };
 
-  // Function to delete a time slot
-  const handleDeleteTimeSlot = useCallback(async (slotId: string) => {
+  // Fix handleEditTimeSlot and handleDeleteTimeSlot to use String(slot.id) if needed
+  const handleEditTimeSlot = (slot: TimeSlot) => {
+    setSelectedSlot(slot);
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteTimeSlot = async (id: number) => {
     try {
-      await db.timeSlots.delete(slotId);
+      await db.timeSlots.delete(id);
       toast({
         title: 'Time slot deleted',
-        description: 'Successfully deleted time slot',
-        variant: 'default',
+        description: 'The time slot has been removed from your schedule.',
       });
     } catch (error) {
-      console.error('Error deleting time slot:', error);
+      console.error('Failed to delete time slot:', error);
       toast({
         title: 'Error',
-        description: 'Failed to delete time slot',
+        description: 'Failed to delete the time slot. Please try again.',
         variant: 'destructive',
       });
     }
-  }, [toast]);
+  };
 
-  const handleToggleComplete = useCallback(async (id: number, completed: boolean) => {
+  const handleSaveTimeSlot = async (timeSlot: Omit<TimeSlot, 'id' | 'date' | 'order'>) => {
     try {
-      await db.timeSlots.update(id, { completed });
+      if (selectedSlot) {
+        // Update existing time slot
+        await db.timeSlots.update(String(selectedSlot.id), timeSlot);
+        toast({
+          title: 'Time slot updated',
+          description: 'Your changes have been saved.',
+        });
+      } else {
+        // Create new time slot
+        const order = timeSlots?.length || 0;
+        await db.timeSlots.add({
+          ...timeSlot,
+          date: dateString,
+          order: Number(order), // Ensure order is a number
+          completed: false,
+        });
+        toast({
+          title: 'Time slot added',
+          description: 'The new time slot has been added to your schedule.',
+        });
+      }
+      setIsModalOpen(false);
     } catch (error) {
-      console.error('Failed to update time slot:', error);
+      console.error('Failed to save time slot:', error);
       toast({
         title: 'Error',
-        description: 'Failed to update time slot status.',
-        variant: 'destructive'
+        description: 'Failed to save the time slot. Please try again.',
+        variant: 'destructive',
       });
     }
-  }, []);
+  };
 
-  const handleDragEnd = useCallback(async (result: DropResult) => {
-    if (!result.destination) return;
-    
-    const { source, destination } = result;
-    if (source.index === destination.index) return;
-
-    try {
-      const slots = timeSlotsWithTasks || [];
-      const newSlots = Array.from(slots);
-      const [removed] = newSlots.splice(source.index, 1);
-      newSlots.splice(destination.index, 0, removed);
-      
-      // Update the order in the database
-      await db.transaction('rw', db.timeSlots, async () => {
-        for (let i = 0; i < newSlots.length; i++) {
-          const slot = newSlots[i];
-          if (slot.id) {
-            await db.timeSlots.update(slot.id, { order: i });
-          }
-        }
-      });
-    } catch (error) {
-      console.error('Failed to reorder time slots:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to reorder time slots. Please try again.',
-        variant: 'destructive'
-      });
-    }
-  }, [timeSlotsWithTasks]);
-
-  const handleEditTimeSlot = useCallback((slot: TimeSlot) => {
-    setSelectedSlot(slot);
-    setIsModalOpen(true);
-  }, []);
-
-  const handleSaveTimeSlot = useCallback(() => {
-    // This will trigger a refresh of the time slots
-    setSelectedSlot(null);
-  }, []);
-
-  // Removed renderTimeSlot since we're inlining the DraggableTimeSlot component usage
+  // Don't render anything on the server to avoid hydration issues
+  if (!isClient) {
+    return null;
+  }
 
   return (
-    <div className="space-y-6">
-      {/* ZEP Header */}
-      <div className="flex flex-col space-y-2">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold tracking-tight">Zenith Enhancement Planner</h2>
-          <Button onClick={() => setIsModalOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" /> Add Time Slot
-          </Button>
+    <div className="space-y-6 p-4">
+      {/* Header */}
+      <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Daily Planner</h1>
+          <p className="text-muted-foreground">
+            {format(currentDate, 'EEEE, MMMM d, yyyy')}
+          </p>
         </div>
-        
-        {/* Date Navigation */}
-        <div className="flex items-center justify-between">
-          <Button variant="outline" size="sm" onClick={() => handleDateChange('prev')}>
+        <div className="flex items-center space-x-2">
+          <Button variant="outline" size="sm" onClick={goToPreviousDay}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="text-sm font-medium">
-            {format(selectedDate, 'EEEE, MMMM d, yyyy')}
-          </span>
-          <Button variant="outline" size="sm" onClick={() => handleDateChange('next')}>
+          <Button variant="outline" size="sm" onClick={goToNextDay}>
             <ChevronRight className="h-4 w-4" />
+          </Button>
+          <Button onClick={handleAddTimeSlot}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Time Slot
           </Button>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Stats */}
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Time Slots</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Planned</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalSlots}</div>
-            <p className="text-xs text-muted-foreground">Total scheduled for today</p>
+            <div className="text-2xl font-bold">
+              {Math.floor(totalPlannedMinutes / 60)}h {totalPlannedMinutes % 60}m
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {totalSlots} time slot{totalSlots !== 1 ? 's' : ''} planned
+            </p>
           </CardContent>
         </Card>
-        
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Completed</CardTitle>
@@ -200,10 +223,11 @@ const PlannerView = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{completedSlots}</div>
-            <p className="text-xs text-muted-foreground">Tasks completed today</p>
+            <p className="text-xs text-muted-foreground">
+              {totalSlots > 0 ? `${productivityRate}% productivity` : 'No tasks yet'}
+            </p>
           </CardContent>
         </Card>
-        
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Productivity</CardTitle>
@@ -211,25 +235,9 @@ const PlannerView = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{productivityRate}%</div>
-            <p className="text-xs text-muted-foreground">Completion rate</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Focus Time</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {timeSlotsWithTasks?.reduce((total, slot) => {
-                const [startH, startM] = slot.startTime.split(':').map(Number);
-                const [endH, endM] = slot.endTime.split(':').map(Number);
-                const duration = (endH * 60 + endM) - (startH * 60 + startM);
-                return total + duration;
-              }, 0) || 0} min
-            </div>
-            <p className="text-xs text-muted-foreground">Total focused work time</p>
+            <p className="text-xs text-muted-foreground">
+              {completedSlots} of {totalSlots} tasks completed
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -240,62 +248,29 @@ const PlannerView = () => {
           <CardTitle>Today's Schedule</CardTitle>
         </CardHeader>
         <CardContent>
-          <DragDropContext onDragEnd={handleDragEnd}>
-            <Droppable droppableId="time-slots">
-              {(provided) => (
-                <div 
-                  ref={provided.innerRef}
-                  {...provided.droppableProps}
-                  className="space-y-2"
-                >
-                  {timeSlotsWithTasks && timeSlotsWithTasks.length > 0 ? (
-                    timeSlotsWithTasks
-                      .sort((a, b) => (a.order || 0) - (b.order || 0) || a.startTime.localeCompare(b.startTime))
-                      .map((slot, index) => (
-                        <DraggableTimeSlot
-                          key={slot.id}
-                          timeSlot={slot}
-                          index={index}
-                          onDelete={handleDeleteTimeSlot}
-                          onEdit={handleEditTimeSlot}
-                        />
-                      ))
-                  ) : (
-                    <div className="text-center py-12">
-                      <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                      <h3 className="text-lg font-medium mb-1">No time slots scheduled</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Add a time slot to get started with your day
-                      </p>
-                      <Button 
-                        className="mt-4" 
-                        variant="outline" 
-                        onClick={() => setIsModalOpen(true)}
-                      >
-                        <Plus className="mr-2 h-4 w-4" /> Add Time Slot
-                      </Button>
-                    </div>
-                  )}
-                  {provided.placeholder}
-                </div>
-              )}
-            </Droppable>
-          </DragDropContext>
+          <Suspense fallback={<div>Loading schedule...</div>}>
+            <TimeSlotsList 
+              timeSlots={timeSlotsWithTasks} 
+              onEdit={handleEditTimeSlot}
+              onDelete={handleDeleteTimeSlot}
+            />
+          </Suspense>
         </CardContent>
       </Card>
 
-      <AddTimeSlotModal
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setSelectedSlot(null);
-        }}
-        date={dateString}
-        initialData={selectedSlot || undefined}
-        onSave={handleSaveTimeSlot}
-      />
+      {/* Add/Edit Time Slot Modal */}
+      <Suspense fallback={null}>
+        <AddTimeSlotModal
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+            setSelectedSlot(null);
+          }}
+          onSave={handleSaveTimeSlot}
+          initialData={selectedSlot}
+          date={dateString}
+        />
+      </Suspense>
     </div>
   );
-};
-
-export default PlannerView;
+}

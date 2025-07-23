@@ -5,12 +5,13 @@ import tsconfigPaths from "vite-tsconfig-paths";
 import { VitePWA } from 'vite-plugin-pwa';
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ mode, command }) => {
   const isProduction = mode === 'production';
+  const isDev = command === 'serve';
   const base = isProduction ? '/zenith-ring-planner/' : '/';
   
   // Set the base URL for the app
-  process.env.VITE_BASE_URL = base;
+  process.env.VITE_BASE_URL = isDev ? '/' : base;
   
   return {
     base,
@@ -18,6 +19,14 @@ export default defineConfig(({ mode }) => {
       host: "::",
       port: 8080,
       strictPort: true,
+      // Handle SPA fallback for development
+      proxy: {
+        '/zenith-ring-planner': {
+          target: 'http://localhost:8080',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/zenith-ring-planner/, '')
+        }
+      }
     },
     preview: {
       port: 8080,
@@ -25,6 +34,14 @@ export default defineConfig(({ mode }) => {
       headers: {
         'Cache-Control': 'public, max-age=0',
       },
+      // Handle SPA fallback for preview
+      proxy: {
+        '/zenith-ring-planner': {
+          target: 'http://localhost:8080',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/zenith-ring-planner/, '')
+        }
+      }
     },
 
     plugins: [
@@ -35,7 +52,8 @@ export default defineConfig(({ mode }) => {
         devOptions: {
           enabled: true,
           type: 'module',
-          navigateFallback: base
+          navigateFallback: 'index.html',
+          suppressWarnings: true
         },
         includeAssets: ['favicon.ico', 'logo.png'],
         manifest: {
@@ -90,7 +108,7 @@ export default defineConfig(({ mode }) => {
               src: `${base}logo.png`,
               sizes: '192x192',
               type: 'image/png',
-              purpose: 'any maskable'
+              purpose: 'any'
             },
             {
               src: `${base}logo.png`,
@@ -102,7 +120,7 @@ export default defineConfig(({ mode }) => {
               src: `${base}logo.png`,
               sizes: '512x512',
               type: 'image/png',
-              purpose: 'any maskable'
+              purpose: 'any'
             }
           ],
           categories: ['productivity', 'finance', 'lifestyle'],
@@ -110,7 +128,7 @@ export default defineConfig(({ mode }) => {
         },
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
-          navigateFallback: `${base}index.html`,
+          navigateFallback: 'index.html',
           cleanupOutdatedCaches: true,
           clientsClaim: true,
           skipWaiting: true,
@@ -133,10 +151,24 @@ export default defineConfig(({ mode }) => {
               urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
               handler: 'CacheFirst',
               options: {
-                cacheName: 'gstatic-fonts-cache',
+                cacheName: 'google-fonts-webfonts',
                 expiration: {
                   maxEntries: 10,
                   maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+                },
+                cacheableResponse: {
+                  statuses: [0, 200]
+                }
+              }
+            },
+            {
+              urlPattern: /^https?:\/\/unpkg\.com\/.*/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'unpkg-cache',
+                expiration: {
+                  maxEntries: 10,
+                  maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
                 },
                 cacheableResponse: {
                   statuses: [0, 200]
