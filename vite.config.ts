@@ -5,13 +5,15 @@ import tsconfigPaths from "vite-tsconfig-paths";
 import { VitePWA } from 'vite-plugin-pwa';
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode, command }) => {
+export default defineConfig(({ mode }) => {
   const isProduction = mode === 'production';
-  const isDev = command === 'serve';
   const base = isProduction ? '/zenith-ring-planner/' : '/';
   
   // Set the base URL for the app
-  process.env.VITE_BASE_URL = isDev ? '/' : base;
+  process.env.VITE_BASE_URL = base;
+  
+  // Ensure the base URL is set for both dev and production
+  process.env.BASE_URL = base;
   
   return {
     base,

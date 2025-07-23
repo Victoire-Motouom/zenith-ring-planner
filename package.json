@@ -6,7 +6,7 @@
   "homepage": "https://Motouom.github.io/zenith-ring-planner",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build --base=/zenith-ring-planner/",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
