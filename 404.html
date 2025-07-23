@@ -1,25 +1,225 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <meta charset="utf-8" />
-    <title>Zenith Planner</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes" />
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Zenith Planner">
+    <meta name="format-detection" content="telephone=no,date=no,address=no,email=no,url=no">
+    <meta name="theme-color" content="#1e3a8a" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
+    
+    <!-- Base URL for GitHub Pages -->
+    <base href="/zenith-ring-planner/" />
+    
+    <!-- iOS PWA Icons -->
+    <link rel="apple-touch-icon" href="logo.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="logo.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="logo.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="logo.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="logo.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="logo.png">
+    
+    <!-- Manifest and Favicon -->
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" type="image/png" href="logo.png" />
+    <link rel="shortcut icon" href="logo.png" />
     <script>
-      // Single Page Apps for GitHub Pages
-      // MIT License
-      // https://github.com/rafgraph/spa-github-pages
-      const pathSegmentsToKeep = 0; // adjust this if your base URL has multiple path segments
+      // Ensure the base URL is set correctly for GitHub Pages
+      const base = '/zenith-ring-planner/';
       
-      const l = window.location;
-      l.replace(
-        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-        l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
-        l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
-        (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
-        l.hash
-      );
+      // Set base URL for the application
+      if (window.location.pathname !== base && !window.location.pathname.startsWith(base)) {
+        // If we're not at the base URL, redirect to it
+        const newPath = base + (window.location.hash || '');
+        window.history.replaceState('', '', newPath);
+      }
+      
+      // Make sure the base tag is set correctly
+      if (!document.querySelector('base')) {
+        const baseTag = document.createElement('base');
+        baseTag.href = base;
+        document.head.prepend(baseTag);
+      }
     </script>
-  </head>
+    <style>
+      /* Desktop-like layout that scales to screen */
+      html {
+        -webkit-text-size-adjust: 100%;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+      }
+      
+      body {
+        margin: 0;
+        padding: 0;
+        overflow-x: hidden; /* Prevent horizontal scrolling */
+      }
+      
+      /* Prevent zoom on input focus while maintaining desktop behavior */
+      input:not([type="checkbox"]):not([type="radio"]),
+      select,
+      textarea {
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        font-size: 16px;
+      }
+      
+      /* Ensure all interactive elements are touch-friendly but desktop-sized */
+      button, [role="button"], a {
+        min-height: 44px;
+        cursor: pointer;
+      }
+      
+      /* Override any mobile-first responsive design */
+      * {
+        box-sizing: border-box;
+      }
+      
+      /* Responsive text scaling based on screen size */
+      html {
+        font-size: clamp(12px, 2.5vw, 16px); /* Base font size scales with viewport */
+      }
+      
+      /* Responsive text sizes */
+      .text-xs { font-size: clamp(0.6rem, 1.5vw, 0.75rem) !important; }
+      .text-sm { font-size: clamp(0.7rem, 1.8vw, 0.875rem) !important; }
+      .text-base { font-size: clamp(0.8rem, 2vw, 1rem) !important; }
+      .text-lg { font-size: clamp(0.9rem, 2.2vw, 1.125rem) !important; }
+      .text-xl { font-size: clamp(1rem, 2.5vw, 1.25rem) !important; }
+      .text-2xl { font-size: clamp(1.2rem, 3vw, 1.5rem) !important; }
+      .text-3xl { font-size: clamp(1.4rem, 3.5vw, 1.875rem) !important; }
+      .text-4xl { font-size: clamp(1.6rem, 4vw, 2.25rem) !important; }
+      .text-5xl { font-size: clamp(1.8rem, 4.5vw, 3rem) !important; }
+      
+      /* Responsive heading sizes */
+      h1 { font-size: clamp(1.6rem, 4vw, 2.25rem) !important; }
+      /* Responsive text scaling for better readability */
+      * {
+        font-size: clamp(0.875rem, 0.8rem + 0.5vw, 1rem);
+      }
+      
+      h1 { font-size: clamp(1.5rem, 1.2rem + 1.5vw, 2.5rem); }
+      h2 { font-size: clamp(1.25rem, 1rem + 1.25vw, 2rem); }
+      h3 { font-size: clamp(1.125rem, 0.9rem + 1.125vw, 1.75rem); }
+      
+      /* Responsive padding and margins */
+      .container {
+        padding-left: clamp(1rem, 2vw, 2rem);
+        padding-right: clamp(1rem, 2vw, 2rem);
+      }
+      
+      /* Icon scaling */
+      svg {
+        width: clamp(1rem, 1rem + 0.5vw, 1.5rem);
+        height: clamp(1rem, 1rem + 0.5vw, 1.5rem);
+      }
+      
+      /* Enhanced responsive utilities */
+      @media (max-width: 640px) {
+        .grid-responsive {
+          grid-template-columns: 1fr !important;
+        }
+        
+        .flex-responsive {
+          flex-direction: column !important;
+          align-items: stretch !important;
+        }
+        
+        .text-responsive {
+          text-align: center !important;
+        }
+        
+        .gap-responsive {
+          gap: 0.5rem !important;
+        }
+      }
+      
+      /* Responsive padding and margins */
+      .p-1 { padding: clamp(0.15rem, 0.5vw, 0.25rem) !important; }
+      .p-2 { padding: clamp(0.3rem, 1vw, 0.5rem) !important; }
+      .p-3 { padding: clamp(0.5rem, 1.5vw, 0.75rem) !important; }
+      .p-4 { padding: clamp(0.7rem, 2vw, 1rem) !important; }
+      .p-6 { padding: clamp(1rem, 2.5vw, 1.5rem) !important; }
+      .p-8 { padding: clamp(1.3rem, 3vw, 2rem) !important; }
+      
+      .py-1 { padding-top: clamp(0.15rem, 0.5vw, 0.25rem) !important; padding-bottom: clamp(0.15rem, 0.5vw, 0.25rem) !important; }
+      .py-2 { padding-top: clamp(0.3rem, 1vw, 0.5rem) !important; padding-bottom: clamp(0.3rem, 1vw, 0.5rem) !important; }
+      .py-4 { padding-top: clamp(0.7rem, 2vw, 1rem) !important; padding-bottom: clamp(0.7rem, 2vw, 1rem) !important; }
+      .py-6 { padding-top: clamp(1rem, 2.5vw, 1.5rem) !important; padding-bottom: clamp(1rem, 2.5vw, 1.5rem) !important; }
+      .py-8 { padding-top: clamp(1.3rem, 3vw, 2rem) !important; padding-bottom: clamp(1.3rem, 3vw, 2rem) !important; }
+      
+      .px-2 { padding-left: clamp(0.3rem, 1vw, 0.5rem) !important; padding-right: clamp(0.3rem, 1vw, 0.5rem) !important; }
+      .px-3 { padding-left: clamp(0.5rem, 1.5vw, 0.75rem) !important; padding-right: clamp(0.5rem, 1.5vw, 0.75rem) !important; }
+      .px-4 { padding-left: clamp(0.7rem, 2vw, 1rem) !important; padding-right: clamp(0.7rem, 2vw, 1rem) !important; }
+      
+      /* Responsive gaps */
+      .gap-0\.5 { gap: clamp(0.1rem, 0.3vw, 0.125rem) !important; }
+      .gap-1 { gap: clamp(0.15rem, 0.5vw, 0.25rem) !important; }
+      .gap-2 { gap: clamp(0.3rem, 1vw, 0.5rem) !important; }
+      .gap-4 { gap: clamp(0.7rem, 2vw, 1rem) !important; }
+      
+      /* Responsive icon sizes */
+      .h-3\.5 { height: clamp(0.7rem, 1.8vw, 0.875rem) !important; }
+      .w-3\.5 { width: clamp(0.7rem, 1.8vw, 0.875rem) !important; }
+      .h-4 { height: clamp(0.8rem, 2vw, 1rem) !important; }
+      .w-4 { width: clamp(0.8rem, 2vw, 1rem) !important; }
+      .h-5 { height: clamp(0.9rem, 2.2vw, 1.25rem) !important; }
+      .w-5 { width: clamp(0.9rem, 2.2vw, 1.25rem) !important; }
+      .h-6 { height: clamp(1rem, 2.5vw, 1.5rem) !important; }
+      .w-6 { width: clamp(1rem, 2.5vw, 1.5rem) !important; }
+      
+      /* Desktop-like container that fits screen */
+      .container {
+        max-width: 100% !important;
+        width: 100% !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+      }
+      
+      /* Ensure content scales properly on smaller screens */
+      @media (max-width: 768px) {
+        .container {
+          padding-left: 0.75rem !important;
+          padding-right: 0.75rem !important;
+        }
+      }
+      
+      /* Add loading styles with responsive desktop layout */
+      #root {
+        min-height: 100vh;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+      
+      .loading {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        width: 100%;
+      }
+    </style>
+    <title>Zenith Planner - Master Your Path</title>
+    <meta name="description" content="A mindful approach to budgeting and daily planning inspired by Miyamoto Musashi's Five Rings" />
+    <meta name="author" content="Zenith Planner" />
+    <meta property="og:title" content="Zenith Planner - Master Your Path" />
+    <meta property="og:description" content="A mindful approach to budgeting and daily planning inspired by Miyamoto Musashi's Five Rings" />
+    <meta property="og:type" content="website" />
+    <script type="module" crossorigin src="/zenith-ring-planner/assets/index-B1ChgvVr.js"></script>
+    <link rel="modulepreload" crossorigin href="/zenith-ring-planner/assets/react-BhhCY37T.js">
+    <link rel="modulepreload" crossorigin href="/zenith-ring-planner/assets/vendor-C2wpnH9a.js">
+    <link rel="stylesheet" crossorigin href="/zenith-ring-planner/assets/index-BPFByeLy.css">
+  <link rel="manifest" href="/zenith-ring-planner/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/zenith-ring-planner/registerSW.js"></script></head>
+
   <body>
-    <p>Redirecting...</p>
+    <div id="root">
+      <div class="loading">Loading...</div>
+    </div>
+    <!-- Service Worker will be auto-registered by Vite PWA plugin -->
   </body>
 </html>
